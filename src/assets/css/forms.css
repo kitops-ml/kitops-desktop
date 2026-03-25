@@ -1,0 +1,23 @@
+@layer components {
+  .form-input {
+    @apply py-3 px-4 bg-elevation-03 border border-gray-03 text-off-white text-[0.95rem] transition-all duration-200 focus:outline-none focus:border-gold focus:bg-elevation-02 placeholder-gray-02;
+  }
+
+  .form-checkbox {
+    @apply w-4 h-4 appearance-none bg-elevation-03 border border-gray-03 cursor-pointer transition-all duration-200 checked:bg-gold checked:border-gold focus:outline-none focus:border-gold;
+    background-image: none;
+  }
+
+  .form-checkbox:checked {
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='8' viewBox='0 0 10 8'><path d='M1 4l3 3 5-6' stroke='%23111' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  .form-select {
+    @apply py-3 px-4 pr-10 bg-elevation-03 border border-gray-03 text-off-white text-[0.95rem] transition-all duration-200 focus:outline-none focus:border-gold focus:bg-elevation-02 w-full appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'><path d='M1 1l5 5 5-5' stroke='%2398989f' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+  }
+}

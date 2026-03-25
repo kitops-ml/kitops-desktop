@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+
+    // Node.js / Electron main process environment
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "lib": ["ES2022"],
+
+    // Electron main + vite.config.js are plain JS
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    // --- Performance ---
+    "skipLibCheck": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+
+    // --- Strictness ---
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [
+    "vite.config.js",
+    "electron/**/*.js",
+    "electron/**/*.ts",
+    "electron/**/*.cjs"
+  ]
+}

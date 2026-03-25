@@ -1,0 +1,37 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      electron:
+        patterns:
+          - electron
+          - electron-builder
+      vue:
+        patterns:
+          - vue
+          - vue-router
+          - pinia
+          - "@vueuse/*"
+          - "@vitejs/*"
+          - eslint-plugin-vue
+      tooling:
+        patterns:
+          - vite
+          - typescript*
+          - "@eslint/*"
+          - "@stylistic/*"
+          - eslint*
+          - husky
+          - lint-staged
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday

@@ -1,0 +1,7 @@
+manifestVersion: "1.0"
+package:
+  name: test
+  version: 1.0.0
+docs:
+  - path: deleteme/docs/CONTRIBUTING.md
+  - path: deleteme/docs/README.md

@@ -1,0 +1,60 @@
+{
+  "compilerOptions": {
+    // Compilation target — ES2022 matches Vite's default esbuild target
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+
+    // Module settings — "bundler" is the correct mode for Vite 5
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+
+    // Browser environment libs
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    // Vue SFC support
+    "jsx": "preserve",
+
+    // Allow importing .ts extensions explicitly (required when allowImportingTsExtensions is true)
+    "allowImportingTsExtensions": true,
+
+    // Allow .js files in src/ (main.js, router/index.js, etc.)
+    "allowJs": true,
+
+    // Resolve JSON imports
+    "resolveJsonModule": true,
+
+    // Required for Vite — each file is transpiled independently
+    "isolatedModules": true,
+
+    // Vite handles compilation; TS is for type-checking only
+    "noEmit": true,
+
+    // Path alias matching vite.config.js resolve.alias
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    // --- Performance ---
+    // Skip type-checking of .d.ts in node_modules (biggest single perf win)
+    "skipLibCheck": true,
+    // Cache incremental build info to speed up subsequent checks
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+    // --- Strictness ---
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/**/*.js"
+  ],
+  "exclude": ["node_modules", "dist", "dist-electron", "electron"]
+}
