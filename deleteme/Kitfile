@@ -1,7 +1,0 @@
-manifestVersion: "1.0"
-package:
-  name: test
-  version: 1.0.0
-docs:
-  - path: ./docs/CONTRIBUTING.md
-  - path: ./docs/README.md
