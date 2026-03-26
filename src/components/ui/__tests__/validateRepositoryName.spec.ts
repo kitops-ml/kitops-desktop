@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { validateRepositoryName } from './validateRepositoryName'
+import { validateRepositoryName } from '../validateRepositoryName'
 
 describe('validateRepositoryName', () => {
   it('returns empty string for empty input', () => {

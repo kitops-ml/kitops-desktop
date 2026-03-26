@@ -3,7 +3,7 @@ import type { ModelKit } from '@kitops/kitops-ts'
 import { storeToRefs } from 'pinia'
 import type { Ref } from 'vue'
 import { computed, inject, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import IconSpinner from '~icons/custom-icons/spinner'
 import IconAdd from '~icons/ri/add-line'
@@ -35,6 +35,7 @@ import { formatDigest, sizeToNumber } from '../utils'
 
 type SortOption = 'name' | 'size' | 'author' | 'repository'
 
+const route = useRoute()
 const router = useRouter()
 const kitStore = useKitStore()
 const draftStore = useUnpackedKitfileStore()
@@ -128,6 +129,9 @@ onMounted(async () => {
   draftStore.fetchUnpackedKitfiles()
   await kitStore.loadAuthState()
 
+  if (route.query.refresh === 'true') {
+    refreshAll()
+  }
 })
 
 function refreshAll() {
@@ -349,13 +353,13 @@ function togglePin(modelkit: ModelKit) {
 
     <!-- Search & Sort Bar -->
     <div class="flex justify-between items-center gap-4 z-1 mx-10 my-5 sticky top-0">
-      <div class="relative flex-1 max-w-1/2 form-input :outline-none focus-within:border-gold focus-within:bg-elevation-02">
+      <div class="relative flex-1 max-w-1/2 2xl:max-w-1/3">
         <IconSearch class="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-02 pointer-events-none" />
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search by name, digest, tag, repository, or author..."
-          class="w-full pl-12 pr-10 placeholder-gray-02" />
+          class="button-secondary w-full pl-10 pr-10 placeholder-gray-02 leading-none py-2.25 focus:border-gold focus:bg-elevation-02" />
         <button
           v-if="searchQuery"
           class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-02 hover:text-off-white transition-colors duration-150"
@@ -365,11 +369,11 @@ function togglePin(modelkit: ModelKit) {
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="flex items-center gap-2 w-auto relative">
-          <IconSort class="size-4 text-gray-02 pointer-events-none absolute left-0" />
+        <div class="flex items-center gap-2 w-auto relative button-secondary focus-within:ring-2 focus-within:ring-gold focus-within:ring-offset-1">
+          <IconSort class="size-4 text-gray-02 pointer-events-none absolute left-2" />
           <select
             v-model="sortBy"
-            class="form-select pl-10 -ml-4">
+            class="pl-8 -ml-4">
             <option value="name">Name</option>
             <option value="size">Size</option>
             <option value="author">Author</option>
@@ -379,14 +383,14 @@ function togglePin(modelkit: ModelKit) {
 
         <div>
           <button
-            class="form-input transition-colors duration-150 h-12.5"
+            class="button-secondary transition-colors duration-150 py-2.5!"
             :class="viewMode === 'grid' ? 'bg-elevation-04 text-gold' : 'bg-elevation-02 text-gray-02 hover:text-off-white'"
             title="Grid view"
             @click="viewMode = 'grid'">
             <IconGrid class="size-4" />
           </button>
           <button
-            class="form-input transition-colors duration-150 h-12.5"
+            class="button-secondary transition-colors duration-150 py-2.5!"
             :class="viewMode === 'list' ? 'bg-elevation-04 text-gold' : 'bg-elevation-02 text-gray-02 hover:text-off-white'"
             title="List view"
             @click="viewMode = 'list'">

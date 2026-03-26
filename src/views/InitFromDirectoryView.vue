@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import Checkbox from '@/components/ui/Checkbox.vue'
 import IconSpinner from '~icons/custom-icons/spinner'
 import IconError from '~icons/ri/error-warning-line'
 
@@ -77,11 +78,8 @@ async function confirmInit(): Promise<void> {
       await draftStore.addUnpackedKitfile(initResult.kitfilePath)
     }
 
-    // Navigate to editor with the kitfile path
-    router.push({
-      name: 'edit-kitfile',
-      query: { kitfilePath: initResult.kitfilePath },
-    })
+    notification.success('Kitfile initialized successfully')
+    router.push({ name: 'home', query: { refresh: 'true' } })
   } catch (error) {
     initError.value = error instanceof Error ? error.message : 'Failed to initialize Kitfile'
     notification.error('Failed to initialize Kitfile', error)
@@ -140,15 +138,10 @@ async function confirmInit(): Promise<void> {
 
             <!-- Force Overwrite -->
             <div class="flex items-center gap-3">
-              <input
-                id="force-overwrite"
-                v-model="forceOverwrite"
-                type="checkbox"
-                class="w-4.5 h-4.5 cursor-pointer accent-gold" />
-              <label for="force-overwrite" class="cursor-pointer">
+              <Checkbox id="force-overwrite" v-model="forceOverwrite">
                 <span class="font-semibold text-sm text-off-white">Overwrite existing Kitfile</span>
                 <p class="text-xs text-gray-02">If a Kitfile already exists in the source directory, ignore it</p>
-              </label>
+              </Checkbox>
             </div>
           </div>
         </div>
@@ -163,13 +156,13 @@ async function confirmInit(): Promise<void> {
         <!-- Action buttons -->
         <div class="flex justify-end gap-3">
           <button
-            class="py-3 px-6 bg-transparent text-gray-01 border border-gray-03 font-semibold transition-all duration-200 hover:bg-surface hover:text-off-white"
+            class="button-secondary"
             :disabled="isInitializing"
             @click="goBack">
             Cancel
           </button>
           <button
-            class="flex items-center gap-2 py-3 px-6 bg-gold text-bg-primary font-semibold transition-all duration-200 hover:bg-gold disabled:opacity-50 disabled:cursor-not-allowed"
+            class="button-submit"
             :disabled="!sourceDirectory || isInitializing"
             @click="confirmInit">
             <IconSpinner v-if="isInitializing" class="size-4 animate-spin" />

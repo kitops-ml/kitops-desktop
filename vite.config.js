@@ -50,11 +50,11 @@ export default defineConfig(({ command }) => ({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/__tests__/**/*.spec.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,js}'],
-      exclude: ['src/main.js', 'src/**/*.vue', 'src/**/*.test.ts'],
+      exclude: ['src/main.js', 'src/**/*.vue', 'src/**/__tests__/**/*.spec.ts'],
     },
   },
 }))

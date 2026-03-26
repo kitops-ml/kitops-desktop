@@ -56,7 +56,12 @@ window.kitops = {
     getTempDir: (subfolder) => ipcRenderer.invoke('kit:getTempDir', subfolder),
     listDir: (dirPath) => ipcRenderer.invoke('kit:listDir', dirPath),
     deleteDir: (dirPath) => ipcRenderer.invoke('kit:deleteDir', dirPath),
+
+    // We might be tempted to expose the entire 'path' module, but that would be a security risk; just expose the things we need
     pathJoin: (...args) => path.join(...args),
+    pathIsAbsolute: (p) => path.isAbsolute(p),
+    pathRelative: (from, to) => path.relative(from, to),
+    pathSep: path.sep,
   },
 
   dialog: {

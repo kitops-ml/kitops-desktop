@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDigest, isBinaryContent, isPathFolder, numberToSize, pluralize, sanitizePath, sizeToNumber } from './utils'
+import { formatDigest, isBinaryContent, isPathFolder, numberToSize, pluralize, sanitizePath, sizeToNumber } from '../utils'
 
 describe('sizeToNumber', () => {
   it('parses bare bytes', () => {

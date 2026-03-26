@@ -70,3 +70,30 @@ export function sanitizePath(path: string): string {
 export function isPathFolder(path: string) {
   return path.endsWith('/')
 }
+
+// Converts an absolute path to a relative path from baseDir.
+// Returns the original path unchanged if it is already relative or if baseDir is empty.
+// Preserves trailing separators and prefixes sub-paths with ./
+export function toRelativePath(path: string, baseDir: string): string {
+  if (!baseDir || !window.kitops.fs.pathIsAbsolute(path)) {
+    return path
+  }
+
+  const sep = window.kitops.fs.pathSep
+  const trailingSlash = path.endsWith('/') || path.endsWith('\\') ? path[path.length - 1] : ''
+  const cleanPath = trailingSlash ? path.slice(0, -1) : path
+
+  const relative = window.kitops.fs.pathRelative(baseDir, cleanPath)
+
+  if (relative === '') {
+    return '.' + sep
+  }
+
+  // pathRelative returns an absolute path when no relative path is possible (e.g. Windows cross-drive)
+  if (window.kitops.fs.pathIsAbsolute(relative)) {
+    return path
+  }
+
+  const withTrailing = relative + trailingSlash
+  return relative.startsWith('..') ? withTrailing : '.' + sep + withTrailing
+}

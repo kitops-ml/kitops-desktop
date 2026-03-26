@@ -243,26 +243,26 @@ async function confirmPush(destination: string): Promise<void> {
         <div class="flex gap-3">
           <button
             v-if="tag !== '<none>'"
-            class="flex items-center gap-2  button-secondary"
+            class="flex items-center gap-2 button-secondary"
             @click="showEditModal = true">
             <IconEdit class="size-4" />
             Edit
           </button>
           <button
-            class="flex items-center gap-2  button-secondary"
+            class="flex items-center gap-2 button-secondary"
             @click="router.push({ name: 'compare', params: { repository, tag } })">
             <IconCompare class="size-4" />
             Compare
           </button>
           <button
-            class="flex items-center gap-2  button-secondary"
+            class="flex items-center gap-2 button-secondary"
             :disabled="tagging !== null"
             @click="openTagModal">
             <IconTag class="size-4" />
             {{ tagging ? 'Tagging...' : 'New Tag' }}
           </button>
           <button
-            class="flex items-center gap-2  button-secondary"
+            class="flex items-center gap-2 button-secondary"
             :disabled="pushing !== null"
             @click="onPushClick">
             <IconPush class="size-4" />

@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { useLogStore } from './logStore'
+import { useLogStore } from '../logStore'
 
 describe('logStore', () => {
   beforeEach(() => {

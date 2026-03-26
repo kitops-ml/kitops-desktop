@@ -148,7 +148,7 @@ watch(() => logStore.logs.length, scrollToBottom)
           <option value="command">Commands Only</option>
           <option value="error">Errors Only</option>
         </Select>
-        <button class="py-2 px-4 whitespace-nowrap border border-gray-03 bg-transparent text-gray-01 text-sm cursor-pointer transition-all duration-200 hover:bg-elevation-02 hover:text-off-white" @click="clearLogs">Clear Logs</button>
+        <button class="button-secondary whitespace-nowrap" @click="clearLogs">Clear Logs</button>
       </div>
     </div>
 

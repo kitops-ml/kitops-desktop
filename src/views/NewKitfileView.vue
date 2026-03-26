@@ -107,16 +107,6 @@ async function importExistingKitfile(): Promise<void> {
 
         <div
           class="bg-surface border-2  border-gray-03 p-6 cursor-pointer transition-all duration-200 flex flex-col gap-3 hover:bg-surface hover:border-gold hover:-translate-y-0.5"
-          @click="selectTemplate({ id: 'blank', name: 'Blank' })">
-          <div class="size-12 bg-gold flex items-center justify-center text-black">
-            <IconFile class="size-7" />
-          </div>
-          <h3 class="text-xl font-bold">Custom Kitfile</h3>
-          <p class="text-gray-01 text-sm leading-relaxed flex-1">Create a custom Kitfile with full control</p>
-        </div>
-
-        <div
-          class="bg-surface border-2  border-gray-03 p-6 cursor-pointer transition-all duration-200 flex flex-col gap-3 hover:bg-surface hover:border-gold hover:-translate-y-0.5"
           @click="goToInitFromDirectory">
           <div class="size-12 bg-gold flex items-center justify-center text-black">
             <IconFolder class="size-7" />
@@ -135,6 +125,16 @@ async function importExistingKitfile(): Promise<void> {
           </div>
           <h3 class="text-xl font-bold">Import existing Kitfile</h3>
           <p class="text-gray-01 text-sm leading-relaxed flex-1">Add an existing Kitfile to your drafts for tracking and packing</p>
+        </div>
+
+        <div
+          class="bg-surface border-2  border-gray-03 p-6 cursor-pointer transition-all duration-200 flex flex-col gap-3 hover:bg-surface hover:border-gold hover:-translate-y-0.5"
+          @click="selectTemplate({ id: 'blank', name: 'Blank' })">
+          <div class="size-12 bg-gold flex items-center justify-center text-black">
+            <IconFile class="size-7" />
+          </div>
+          <h3 class="text-xl font-bold">Custom Kitfile</h3>
+          <p class="text-gray-01 text-sm leading-relaxed flex-1">Create a custom Kitfile with full control</p>
         </div>
 
         <div class="col-span-full mt-10">

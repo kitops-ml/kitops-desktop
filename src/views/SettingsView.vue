@@ -157,10 +157,16 @@ function resetTempDir() {
 
 <template>
   <div class="flex flex-col h-full overflow-hidden">
-    <header class="py-8 px-10 bg-elevation-02 border-b border-gray-03 h-28 flex items-center">
+    <header class="py-8 px-10 bg-elevation-02 border-b border-gray-03 h-28 flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-extrabold mb-2">Settings</h1>
         <p class="text-gray-01">Configure KitOps Desktop preferences</p>
+      </div>
+
+      <div>
+        <RouterLink :to="{ name: 'logs' }" class="button button-secondary">
+          View Logs
+        </RouterLink>
       </div>
     </header>
 

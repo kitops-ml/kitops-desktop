@@ -21,6 +21,7 @@ import { useShiki } from '../composables/useShiki'
 import { useKitStore } from '../stores/kitStore'
 import { useLogStore } from '../stores/logStore'
 import { useUnpackedKitfileStore } from '../stores/unpackedKitfileStore'
+import { toRelativePath as toRelativePathPure } from '../utils'
 
 interface Layer {
   path: string;
@@ -165,33 +166,29 @@ function isPathDuplicate(path: string): boolean {
 }
 
 function isAbsolutePath(path: string): boolean {
-  // Windows: C:\, D:\, etc. or UNC paths \\server\share
-  // Unix/Linux/Mac: /path/to/file
-  return /^([a-zA-Z]:\\|\\\\|\/)/g.test(path)
+  return window.kitops.fs.pathIsAbsolute(path)
+}
+
+function isPathOutsideDir(path: string): boolean {
+  if (!path) {
+    return false
+  }
+  if (path.startsWith('../') || path.startsWith('..\\') || path === '..') {
+    return true
+  }
+  if (kitfileBaseDir.value && window.kitops.fs.pathIsAbsolute(path)) {
+    const relative = window.kitops.fs.pathRelative(kitfileBaseDir.value, path)
+    return relative.startsWith('..')
+  }
+  return false
 }
 
 function toRelativePath(path: string, baseDir?: string): string {
   const kitfileBase = baseDir || kitfileBaseDir.value
-  if (kitfileBase && isAbsolutePath(path)) {
-    // Derive the OS separator via pathJoin
-    const sep = window.kitops.fs.pathJoin('a', 'b').slice(1, 2)
-    if (path.startsWith(kitfileBase + sep) || path === kitfileBase) {
-      return './' + path.substring(kitfileBase.length + 1)
-    } else {
-      // Compute a proper relative path from kitfileBase to path
-      const fromParts = kitfileBase.split(sep).filter(Boolean)
-      const toParts = path.split(sep).filter(Boolean)
-      let i = 0
-      while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
-        i++
-      }
-      const ups = Array(fromParts.length - i).fill('..')
-      const downs = toParts.slice(i)
-      const parts = [...ups, ...downs]
-      return parts.length > 0 ? window.kitops.fs.pathJoin(...parts) : '.'
-    }
+  if (!kitfileBase) {
+    return path
   }
-  return path
+  return toRelativePathPure(path, kitfileBase)
 }
 
 const generatedYaml = computed((): string => {
@@ -466,6 +463,7 @@ function removeModelPart(i: number) {
 async function addCodeFile(): Promise<void> {
   const result = await window.kitops.dialog.selectPath({ defaultPath: kitfileBaseDir.value, multiple: true })
   if (!result.success || !result.paths.length) {
+    formData.value.code.push({ path: '', description: '', license: '' })
     return
   }
   for (const p of result.paths) {
@@ -480,6 +478,7 @@ function removeCodeFile(i: number) {
 async function addDataset(): Promise<void> {
   const result = await window.kitops.dialog.selectPath({ defaultPath: kitfileBaseDir.value, multiple: true })
   if (!result.success || !result.paths.length) {
+    formData.value.datasets.push({ name: '', path: '', description: '', license: '' })
     return
   }
   for (const p of result.paths) {
@@ -493,6 +492,7 @@ function removeDataset(i: number) {
 async function addDoc(): Promise<void> {
   const result = await window.kitops.dialog.selectPath({ defaultPath: kitfileBaseDir.value, multiple: true })
   if (!result.success || !result.paths.length) {
+    formData.value.docs.push({ path: '', description: '' })
     return
   }
   for (const p of result.paths) {
@@ -507,6 +507,7 @@ function removeDoc(i: number) {
 async function addPrompt(): Promise<void> {
   const result = await window.kitops.dialog.selectPath({ defaultPath: kitfileBaseDir.value, multiple: true })
   if (!result.success || !result.paths.length) {
+    formData.value.prompts.push({ path: '', description: '' })
     return
   }
   for (const p of result.paths) {
@@ -529,34 +530,63 @@ function goBack() {
 }
 
 function makeAllPathsRelative(baseDir?: string) {
+  // small helper
+  const convert = (original: string): string => {
+    const converted = toRelativePath(original, baseDir)
+    if (converted !== original) {
+      logStore.logInfo(`Path converted to relative: ${original} → ${converted}`)
+    }
+    return converted
+  }
+
   if (formData.value.model.path) {
-    formData.value.model.path = toRelativePath(formData.value.model.path, baseDir)
+    formData.value.model.path = convert(formData.value.model.path)
   }
   for (const part of formData.value.model.parts) {
     if (part.path) {
-      part.path = toRelativePath(part.path, baseDir)
+      part.path = convert(part.path)
     }
   }
   for (const c of formData.value.code) {
     if (c.path) {
-      c.path = toRelativePath(c.path, baseDir)
+      c.path = convert(c.path)
     }
   }
   for (const d of formData.value.datasets) {
     if (d.path) {
-      d.path = toRelativePath(d.path, baseDir)
+      d.path = convert(d.path)
     }
   }
   for (const d of formData.value.docs) {
     if (d.path) {
-      d.path = toRelativePath(d.path, baseDir)
+      d.path = convert(d.path)
     }
   }
   for (const p of formData.value.prompts) {
     if (p.path) {
-      p.path = toRelativePath(p.path, baseDir)
+      p.path = convert(p.path)
     }
   }
+}
+
+function getPathErrorMessage(path: string): string | null {
+  if (!path) {
+    return null
+  }
+
+  if (kitfilePath.value) {
+    if (isAbsolutePath(path)) {
+      return 'Absolute paths are not allowed'
+    }
+    if (isPathOutsideDir(path)) {
+      return 'Path is outside the kitfile directory'
+    }
+  }
+
+  if (isPathDuplicate(path)) {
+    return 'This path is used multiple times'
+  }
+  return null
 }
 
 async function saveKitfile(): Promise<void> {
@@ -567,6 +597,10 @@ async function saveKitfile(): Promise<void> {
     // If editing an existing kitfile, overwrite it
     if (isEditing.value) {
       makeAllPathsRelative()
+      if (allUsedPaths.value.some(p => isPathOutsideDir(p))) {
+        notification.error('Some paths are outside the kitfile directory. Fix them before saving.')
+        return
+      }
       await window.kitops.fs.writeFile(savePath, generatedYaml.value)
     } else {
       // Otherwise, ask user where to save the new kitfile
@@ -578,7 +612,13 @@ async function saveKitfile(): Promise<void> {
         savePath = window.kitops.fs.pathJoin(result.path, 'Kitfile')
         kitfilePath.value = savePath
         makeAllPathsRelative(savePath.substring(0, savePath.lastIndexOf('/')))
+        if (allUsedPaths.value.some(p => isPathOutsideDir(p))) {
+          notification.error('Some paths are outside the kitfile directory. Fix them before saving.')
+          return
+        }
         await window.kitops.fs.writeFile(savePath, generatedYaml.value)
+        logStore.logInfo('Kitfile created', { savePath })
+        notification.success('Kitfile created')
       }
     }
 
@@ -736,7 +776,7 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
                 <div class="flex flex-col gap-2">
                   <label class="font-semibold text-sm text-gray-01">Path <span class="text-error">*</span></label>
                   <InputPath v-model="formData.model.path" placeholder="model.pt" :base-dir="kitfileBaseDir" />
-                  <p v-if="isPathDuplicate(formData.model.path)" class="text-xs text-error">This path is already used in another layer.</p>
+                  <p v-if="getPathErrorMessage(formData.model.path)" class="text-xs text-error">{{ getPathErrorMessage(formData.model.path) }}</p>
                 </div>
                 <div class="flex flex-col gap-2">
                   <label class="font-semibold text-sm text-gray-01">Framework</label>
@@ -785,8 +825,7 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
                     class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-start">
                     <div>
                       <InputPath v-model="part.path" placeholder="model.shard1.pt" :base-dir="kitfileBaseDir" />
-                      <p v-if="isPathDuplicate(part.path)" class="text-xs text-error mt-0.5">Already used in another layer.</p>
-                      <p v-else-if="isAbsolutePath(part.path)" class="text-xs text-amber-400 mt-0.5">Use a relative path for portability.</p>
+                      <p v-if="getPathErrorMessage(part.path)" class="text-xs text-error mt-0.5">{{ getPathErrorMessage(part.path) }}</p>
                     </div>
                     <Input v-model="part.name" type="text" placeholder="shard-1" />
                     <Input v-model="part.type" type="text" placeholder="weights" />
@@ -849,7 +888,7 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
                   <div class="flex flex-col gap-1 col-span-2">
                     <label class="text-xs font-semibold text-gray-01">Path <span class="text-error">*</span></label>
                     <InputPath v-model="entry.path" placeholder="path/to/file.py" :base-dir="kitfileBaseDir" />
-                    <p v-if="isPathDuplicate(entry.path)" class="text-xs text-error">This path is already used in another layer.</p>
+                    <p v-if="getPathErrorMessage(entry.path)" class="text-xs text-error">{{ getPathErrorMessage(entry.path) }}</p>
                   </div>
                   <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-gray-01">Description</label>
@@ -893,13 +932,13 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div class="flex flex-col gap-1">
-                    <label class="text-xs font-semibold text-gray-01">Name</label>
-                    <Input v-model="entry.name" type="text" placeholder="training-set" />
-                  </div>
-                  <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-gray-01">Path <span class="text-error">*</span></label>
                     <InputPath v-model="entry.path" placeholder="data/" :base-dir="kitfileBaseDir" />
-                    <p v-if="isPathDuplicate(entry.path)" class="text-xs text-error">This path is already used in another layer.</p>
+                    <p v-if="getPathErrorMessage(entry.path)" class="text-xs text-error">{{ getPathErrorMessage(entry.path) }}</p>
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs font-semibold text-gray-01">Name</label>
+                    <Input v-model="entry.name" type="text" placeholder="training-set" />
                   </div>
                   <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-gray-01">Description</label>
@@ -945,7 +984,7 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
                   <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-gray-01">Path <span class="text-error">*</span></label>
                     <InputPath v-model="entry.path" placeholder="README.md" :base-dir="kitfileBaseDir" />
-                    <p v-if="isPathDuplicate(entry.path)" class="text-xs text-error">This path is already used in another layer.</p>
+                    <p v-if="getPathErrorMessage(entry.path)" class="text-xs text-error">{{ getPathErrorMessage(entry.path) }}</p>
                   </div>
                   <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-gray-01">Description</label>
@@ -987,7 +1026,7 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
                   <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-gray-01">Path <span class="text-error">*</span></label>
                     <InputPath v-model="entry.path" placeholder="PROMPT.md" :base-dir="kitfileBaseDir" />
-                    <p v-if="isPathDuplicate(entry.path)" class="text-xs text-error">This path is already used in another layer.</p>
+                    <p v-if="getPathErrorMessage(entry.path)" class="text-xs text-error">{{ getPathErrorMessage(entry.path) }}</p>
                   </div>
                   <div class="flex flex-col gap-1">
                     <label class="text-xs font-semibold text-gray-01">Description</label>
@@ -1012,7 +1051,11 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
           <pre v-else class="m-0 p-6 bg-elevation-01 border border-gray-03 overflow-x-auto"><code class="font-mono text-sm leading-relaxed text-off-white">{{ generatedYaml }}</code></pre>
         </div>
 
-        <p class="text-gold text-xs mt-6">Absolute paths are not supported. All absolute paths will be converted to relative on save.</p>
+        <ul class="text-gold text-xs mt-6 list-disc list-inside p-4 px-6">
+          <li>All layer paths must be relative to the kitfile location.</li>
+          <li>Absolute paths will be converted on save.</li>
+          <li>Paths outside the kitfile directory will block saving.</li>
+        </ul>
 
         <!-- Actions -->
         <div class="flex justify-end items-center gap-3 mt-6">
@@ -1056,8 +1099,8 @@ async function handlePackSubmit(form: { registry: string; repository: string; ta
 }
 
 .shiki-container :deep(code) {
-  font-family: theme('fontFamily.mono');
-  font-size: theme('fontSize.sm');
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
   line-height: 1.625;
 }
 </style>

@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { useModelKitStore } from './modelKitStore'
+import { useModelKitStore } from '../modelKitStore'
 
 describe('modelKitStore', () => {
   beforeEach(() => {

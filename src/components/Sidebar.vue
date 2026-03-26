@@ -32,28 +32,23 @@ const kitStore = useKitStore()
     </div>
 
     <nav class="flex-1 p-6 flex flex-col gap-2">
-      <router-link to="/" class="nav-item" active-class="active">
+      <RouterLink :to="{ name: 'home' }" class="nav-item" active-class="active">
         <IconModelKit class="size-5" />
         <span>ModelKits</span>
-      </router-link>
+      </RouterLink>
 
-      <router-link to="/new" class="nav-item" active-class="active">
+      <RouterLink :to="{ name: 'new-kitfile' }" class="nav-item" active-class="active">
         <IconAdd class="size-5" />
         <span>New Kitfile</span>
-      </router-link>
+      </RouterLink>
 
-      <router-link to="/logs" class="nav-item" active-class="active">
-        <IconFile class="size-5" />
-        <span>Logs</span>
-      </router-link>
-
-      <router-link to="/settings" class="nav-item" active-class="active">
+      <RouterLink :to="{ name: 'settings' }" class="nav-item" active-class="active">
         <span class="relative">
           <IconCog class="size-5" />
           <IconArrowUp v-if="kitStore.updateAvailable" class="size-3 text-gold absolute -top-1.5 -right-1.5" />
         </span>
         <span>Settings</span>
-      </router-link>
+      </RouterLink>
     </nav>
 
     <div class="p-6 border-t border-gray-03">
