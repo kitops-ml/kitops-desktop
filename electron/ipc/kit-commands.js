@@ -17,15 +17,15 @@ export function register(ipcMain) {
   ipcMain.handle('kit:list', () => withLogging('list', null, kitops.list))
 
   ipcMain.handle('kit:init', (e, directory, flags) =>
-    withLogging('init', { directory, flags }, () => kitops.init(directory, flags))
+    withLogging('init', { directory, flags }, () => kitops.init(directory, flags)),
   )
 
   ipcMain.handle('kit:inspect', (e, path, flags) =>
-    withLogging('inspect', { path, flags }, () => kitops.inspect(path, flags))
+    withLogging('inspect', { path, flags }, () => kitops.inspect(path, flags)),
   )
 
   ipcMain.handle('kit:push', (e, source, destination, flags) =>
-    withLogging('push', { source, destination, flags }, () => kitops.push(source, destination || undefined, flags))
+    withLogging('push', { source, destination, flags }, () => kitops.push(source, destination || undefined, flags)),
   )
 
   ipcMain.handle('kit:pull', (e, options) => {
@@ -39,38 +39,38 @@ export function register(ipcMain) {
   })
 
   ipcMain.handle('kit:unpack', (e, path, flags) =>
-    withLogging('unpack', { path, flags }, () => kitops.unpack(path, flags))
+    withLogging('unpack', { path, flags }, () => kitops.unpack(path, flags)),
   )
 
   ipcMain.handle('kit:pack', (e, directory, flags) =>
-    withLogging('pack', { directory, flags }, () => kitops.pack(directory, flags))
+    withLogging('pack', { directory, flags }, () => kitops.pack(directory, flags)),
   )
 
   ipcMain.handle('kit:remove', (e, path, flags = {}) =>
-    withLogging('remove', { path, flags }, () => kitops.remove(path, flags))
+    withLogging('remove', { path, flags }, () => kitops.remove(path, flags)),
   )
 
   ipcMain.handle('kit:removeAll', (e, force = false) =>
-    withLogging('remove --all', { force }, () => kitops.removeAll({ force }))
+    withLogging('remove --all', { force }, () => kitops.removeAll({ force })),
   )
 
   ipcMain.handle('kit:login', (e, registry, username, password, flags) =>
-    withLogging('login', { registry, username, flags }, () => kitops.login(registry, username, password, flags))
+    withLogging('login', { registry, username, flags }, () => kitops.login(registry, username, password, flags)),
   )
 
   ipcMain.handle('kit:loginUnsafe', (e, registry, username, password, flags) =>
-    withLogging('login', { registry, username, flags }, () => kitops.loginUnsafe(registry, username, password, flags))
+    withLogging('login', { registry, username, flags }, () => kitops.loginUnsafe(registry, username, password, flags)),
   )
 
   ipcMain.handle('kit:logout', (e, registry) =>
-    withLogging('logout', { registry }, () => kitops.logout(registry))
+    withLogging('logout', { registry }, () => kitops.logout(registry)),
   )
 
   ipcMain.handle('kit:tag', (e, source, destination) =>
-    withLogging('tag', { source, destination }, () => kitops.tag(source, destination))
+    withLogging('tag', { source, destination }, () => kitops.tag(source, destination)),
   )
 
   ipcMain.handle('kit:diff', (e, reference1, reference2) =>
-    withLogging('diff', { reference1, reference2 }, () => kitops.diff(reference1, reference2))
+    withLogging('diff', { reference1, reference2 }, () => kitops.diff(reference1, reference2)),
   )
 }

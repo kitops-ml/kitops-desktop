@@ -3,7 +3,6 @@ import { numberToSize } from '@/utils'
 import IconAdd from '~icons/ri/add-line'
 import IconArrowUp from '~icons/ri/arrow-up-circle-line'
 import IconModelKit from '~icons/ri/box-2-line'
-import IconFile from '~icons/ri/file-text-line'
 import IconCog from '~icons/ri/settings-line'
 
 import { useKitStore } from '../stores/kitStore'

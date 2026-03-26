@@ -78,7 +78,6 @@ const isNew = ref(true)
 const loadingKitfile = ref(false)
 const kitfilePath = ref<string | null>(null)
 const showModelSection = ref(false)
-const shouldMakePathsRelative = ref(true)
 
 const editFrom = route.query.editFrom as string | undefined
 const editDir = route.query.editDir as string | undefined

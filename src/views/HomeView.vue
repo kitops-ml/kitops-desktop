@@ -25,7 +25,7 @@ import PruneConfirmModal from '../components/modals/PruneConfirmModal.vue'
 import PullModal from '../components/modals/PullModal.vue'
 import TagModal from '../components/modals/TagModal.vue'
 import ModelKitCard from '../components/ModelKitCard.vue'
-import UnpackedKitfileCard, { type DuplicateMode } from '../components/UnpackedKitfileCard.vue'
+import UnpackedKitfileCard from '../components/UnpackedKitfileCard.vue'
 import { useNotification } from '../composables/useNotification'
 import { useKitStore } from '../stores/kitStore'
 import { useModelKitStore } from '../stores/modelKitStore'
@@ -188,13 +188,6 @@ async function removeDraft(event: Event, draft: UnpackedKitfile) {
   }
 }
 
-async function duplicateDraft(mode: DuplicateMode, draft: UnpackedKitfile) {
-  try {
-    await draftStore.duplicateUnpackedKitfile(draft.id, mode)
-  } catch (error) {
-    notification.error('Failed to duplicate:', error)
-  }
-}
 
 function openDeleteConfirm(modelkit: ModelKit) {
   selectedModelKit.value = modelkit

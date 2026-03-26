@@ -5,11 +5,10 @@ import { fileURLToPath } from 'url'
 import { getDefaultKitopsHome, installCommandLineTool } from './ipc/cli-setup.js'
 import * as cliSetup from './ipc/cli-setup.js'
 import * as credentials from './ipc/credentials.js'
+import * as env from './ipc/env.js'
 import * as filesystem from './ipc/filesystem.js'
 import * as kitCommands from './ipc/kit-commands.js'
 import * as kitfiles from './ipc/kitfiles.js'
-import * as env from './ipc/env.js'
-
 import { setMainWindow } from './logging.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

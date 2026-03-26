@@ -1,14 +1,14 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
+import CompareView from '../views/CompareView.vue'
+import DiskUsageView from '../views/DiskUsageView.vue'
 import HomeView from '../views/HomeView.vue'
 import InitFromDirectoryView from '../views/InitFromDirectoryView.vue'
 import KitfileEditorView from '../views/KitfileEditorView.vue'
 import LogsView from '../views/LogsView.vue'
-import CompareView from '../views/CompareView.vue'
 import ModelKitDetailView from '../views/ModelKitDetailView.vue'
 import NewKitfileView from '../views/NewKitfileView.vue'
 import SettingsView from '../views/SettingsView.vue'
-import DiskUsageView from '../views/DiskUsageView.vue'
 
 const routes = [
   {
@@ -55,7 +55,7 @@ const routes = [
     path: '/disk-usage',
     name: 'disk-usage',
     component: DiskUsageView,
-  }
+  },
 ]
 
 const router = createRouter({

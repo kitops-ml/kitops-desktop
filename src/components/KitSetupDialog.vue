@@ -31,8 +31,8 @@ async function handleInstallKit() {
     } else {
       error.value = result.error || 'Installation failed'
     }
-  } catch (err: any) {
-    error.value = err.message || 'Installation failed'
+  } catch (err: unknown) {
+    error.value = (err as Error).message || 'Installation failed'
   } finally {
     installing.value = false
   }
