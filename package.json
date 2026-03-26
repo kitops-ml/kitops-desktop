@@ -29,17 +29,17 @@
     "diff": "^8.0.4",
     "@kitops/kitops-ts": "^0.0.3",
     "marked": "^17.0.1",
-    "pinia": "^2.1.7",
+    "pinia": "^3.0.4",
     "shiki": "^3.22.0",
     "tailwindcss": "^4.1.18",
-    "vue": "^3.4.0",
-    "vue-router": "^4.2.5"
+    "vue": "^3.5.31",
+    "vue-router": "^5.0.4"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.2",
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.8.0",
-    "@vitejs/plugin-vue": "^5.0.0",
+    "@vitejs/plugin-vue": "^6.0.5",
     "concurrently": "^8.2.2",
     "electron": "^41.0.4",
     "electron-builder": "^26.8.1",
