@@ -20,7 +20,6 @@ interface StoredRegistry extends Registry {
 }
 
 const BUILTIN_REGISTRIES: StoredRegistry[] = [
-  { name: 'Jozu Hub Staging', url: 'st.jozu.ml', authenticated: false, isCustom: false },
   { name: 'Jozu Hub', url: 'jozu.ml', authenticated: false, isCustom: false },
 ]
 
