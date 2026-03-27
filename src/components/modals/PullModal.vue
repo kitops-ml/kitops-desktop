@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 
 import Modal from '../Modal.vue'
 import Input from '../ui/Input.vue'
@@ -13,12 +13,14 @@ const props = defineProps<{
 const emit = defineEmits<{ close: []; submit: [reference: string] }>()
 
 const reference = ref('')
+const formRef = ref<HTMLFormElement>()
 
 watch(
   () => props.open,
   (val) => {
     if (val) {
       reference.value = ''
+      nextTick(() => formRef.value?.querySelector<HTMLInputElement>('input')?.focus())
     }
   },
 )
@@ -28,7 +30,7 @@ watch(
   <Modal :open="open" @close="$emit('close')">
     <h3 class="text-xl font-bold mb-2">Pull ModelKit</h3>
     <p class="text-gray-01 text-sm mb-6">Pull a ModelKit from a remote registry to your local storage.</p>
-    <form class="flex flex-col gap-4" @submit.prevent="emit('submit', reference)">
+    <form ref="formRef" class="flex flex-col gap-4" @submit.prevent="emit('submit', reference)">
       <div class="flex flex-col gap-2">
         <label class="font-semibold text-sm text-gray-01">Reference <span class="text-error">*</span></label>
         <Input

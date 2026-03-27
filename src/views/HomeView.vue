@@ -5,6 +5,8 @@ import type { Ref } from 'vue'
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { Settings } from '@/constants/settings'
+import { useSettingsStore } from '@/stores/settingsStore'
 import IconSpinner from '~icons/custom-icons/spinner'
 import IconAdd from '~icons/ri/add-line'
 import IconSort from '~icons/ri/arrow-up-down-line'
@@ -41,13 +43,14 @@ const kitStore = useKitStore()
 const draftStore = useUnpackedKitfileStore()
 const notification = useNotification()
 const modelkitStore = useModelKitStore()
+const settingsStore = useSettingsStore()
 
 const { registries } = storeToRefs(kitStore)
 const { pinnedModelKits } = storeToRefs(modelkitStore)
+const { viewMode } = storeToRefs(settingsStore)
 
 const searchQuery = ref('')
 const sortBy = ref<SortOption>('name')
-const viewMode = ref<'grid' | 'list'>('grid')
 const showDeleteConfirm = ref(false)
 const isDeleting = ref<boolean>(false)
 
@@ -128,6 +131,7 @@ const filteredUnpacked = computed(() => {
 onMounted(async () => {
   draftStore.fetchUnpackedKitfiles()
   await kitStore.loadAuthState()
+  settingsStore.loadSettings()
 
   if (route.query.refresh === 'true') {
     refreshAll()
@@ -304,6 +308,10 @@ function togglePin(modelkit: ModelKit) {
     modelkitStore.pinModelKit(path)
   }
 }
+
+function changeViewMode(mode: Settings['homeViewTab']) {
+  settingsStore.updateSetting('homeViewTab', mode)
+}
 </script>
 
 <template>
@@ -345,7 +353,9 @@ function togglePin(modelkit: ModelKit) {
     </header>
 
     <!-- Search & Sort Bar -->
-    <div class="flex justify-between items-center gap-4 z-1 mx-10 my-5 sticky top-0">
+    <div
+      v-if="kitStore.modelKits.length"
+      class="flex justify-between items-center gap-4 z-1 mx-10 my-5 sticky top-0">
       <div class="relative flex-1 max-w-1/2 2xl:max-w-1/3">
         <IconSearch class="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-02 pointer-events-none" />
         <input
@@ -379,14 +389,14 @@ function togglePin(modelkit: ModelKit) {
             class="button-secondary transition-colors duration-150 py-2.5!"
             :class="viewMode === 'grid' ? 'bg-elevation-04 text-gold' : 'bg-elevation-02 text-gray-02 hover:text-off-white'"
             title="Grid view"
-            @click="viewMode = 'grid'">
+            @click="changeViewMode('grid')">
             <IconGrid class="size-4" />
           </button>
           <button
             class="button-secondary transition-colors duration-150 py-2.5!"
             :class="viewMode === 'list' ? 'bg-elevation-04 text-gold' : 'bg-elevation-02 text-gray-02 hover:text-off-white'"
             title="List view"
-            @click="viewMode = 'list'">
+            @click="changeViewMode('list')">
             <IconList class="size-4" />
           </button>
         </div>
@@ -436,29 +446,34 @@ function togglePin(modelkit: ModelKit) {
 
       <!-- ModelKits Section -->
       <div>
-        <div v-if="draftStore.hasUnpacked" class="flex items-center gap-3">
-          <h2 class="text-xl font-bold text-off-white">Packed ModelKits</h2>
-          <span class="py-1 px-2 bg-gold/20 text-gold text-xs font-semibold">
-            {{ kitStore.modelKits.length }}
-          </span>
-        </div>
-        <p class="text-gray-01 text-sm mb-4">
-          These are the ModelKits that are present in your local store.
-        </p>
+        <template v-if="kitStore.modelKits.length">
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-bold text-off-white">Packed ModelKits</h2>
+            <span class="py-1 px-2 bg-gold/20 text-gold text-xs font-semibold">
+              {{ kitStore.modelKits.length }}
+            </span>
+          </div>
+          <p class="text-gray-01 text-sm mb-4">
+            These are the ModelKits that are present in your local store.
+          </p>
+        </template>
 
         <div v-if="kitStore.loading" class="flex flex-col items-center justify-center h-64 gap-4 text-gray-01">
-          <div class="w-10 h-10 border-3 border-gray-03 border-t-gold animate-spin rounded-full"></div>
+          <IconSpinner class="size-5 animate-spin text-gold" />
           <p>Loading ModelKits...</p>
         </div>
 
-        <div v-else-if="kitStore.modelKits.length === 0 && !draftStore.hasUnpacked" class="flex flex-col items-center justify-center h-full gap-4 text-gray-01">
+        <div
+          v-else-if="kitStore.modelKits.length === 0 && !draftStore.hasUnpacked"
+          class="flex flex-col items-center justify-center h-full gap-4 text-gray-01 mt-30">
           <div class="w-20 h-20 text-gray-02 opacity-50">
             <IconAdd class="size-full" />
           </div>
           <h3 class="text-2xl text-off-white mt-4">No ModelKits found</h3>
-          <p class="max-w-md text-center mb-6">Create your first Kitfile to get started packaging AI models</p>
+          <p class="text-center">Pull existing ModelKits from a remote repository to get started.</p>
+          <p class="text-center mb-6">Or create your first Kitfile to get started packaging AI models</p>
           <button
-            class="flex items-center gap-2 py-3 px-5 font-semibold bg-transparent text-off-white border border-off-white hover:bg-gold hover:text-bg-primary hover:border-gold hover:-translate-y-px hover:shadow-(--shadow-glow) transition-all duration-200"
+            class="button-primary"
             @click="createNew">
             Create Kitfile
           </button>

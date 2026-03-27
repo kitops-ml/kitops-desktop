@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 
 import RegistriesSelect from '../ui/RegistriesSelect.vue'
 import RepositoryNameInput from '../ui/RepositoryNameInput.vue'
@@ -20,6 +20,7 @@ const form = reactive({
 })
 
 const repositoryError = ref('')
+const firstInputRef = ref<HTMLDivElement>()
 
 const destinationRegistry = ref('')
 
@@ -40,6 +41,7 @@ watch(() => props.open, (val) => {
   if (val) {
     form.repository = sourceParts.value.repository
     form.tag = sourceParts.value.tag
+    nextTick(() => firstInputRef.value?.querySelector<HTMLInputElement>('input')?.focus())
   }
 })
 </script>
@@ -50,7 +52,7 @@ watch(() => props.open, (val) => {
     title="Confirm Push"
     confirm-label="Confirm Push"
     busy-label="Pushing..."
-    :disabled="!destinationRegistry || !form.repository || !!repositoryError || !form.tag"
+    :disabled="!destinationRegistry || !form.repository || Boolean(repositoryError) || !form.tag"
     class="max-w-2xl"
     @close="$emit('close')"
     @confirm="emit('confirm', destination)">
@@ -69,7 +71,7 @@ watch(() => props.open, (val) => {
       </div>
     </div>
     <hr class="mb-4 border-b border-gray-03">
-    <div class="flex flex-col gap-2 mb-4">
+    <div ref="firstInputRef" class="flex flex-col gap-2 mb-4">
       <label class="font-semibold text-sm text-gray-01">Repository <span class="text-error">*</span></label>
       <RepositoryNameInput
         v-model="form.repository"

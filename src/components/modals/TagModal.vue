@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 
 import Modal from '../Modal.vue'
 import Input from '../ui/Input.vue'
@@ -15,10 +15,12 @@ const props = defineProps<{
 const emit = defineEmits<{ close: []; submit: [tagName: string] }>()
 
 const tagName = ref('latest')
+const formRef = ref<HTMLFormElement>()
 
 watch(() => props.open, (val) => {
   if (val) {
     tagName.value = 'latest'
+    nextTick(() => formRef.value?.querySelector<HTMLInputElement>('input')?.focus())
   }
 })
 </script>
@@ -30,7 +32,7 @@ watch(() => props.open, (val) => {
     @close="$emit('close')">
     <h3 class="text-xl font-bold mb-2">Tag ModelKit</h3>
     <p class="text-gray-01 text-sm mb-6">Create a new tag for this ModelKit</p>
-    <form class="flex flex-col gap-4" @submit.prevent="emit('submit', tagName)">
+    <form ref="formRef" class="flex flex-col gap-4" @submit.prevent="emit('submit', tagName)">
       <div class="p-3 bg-elevation-01 border border-gray-03">
         <span class="text-xs text-gray-02 block mb-1">Tagging:</span>
         <code class="text-sm font-mono text-off-white break-all">{{ repository }}:{{ tag }}</code>

@@ -13,11 +13,28 @@ const { modelKits } = storeToRefs(kitStore)
 
 const expanded = ref<string[]>([])
 
-function repoColor(name: string): string {
-  const hash = [...name].reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  const hue = (hash * 137.508) % 360
-  return `hsl(${hue}, 60%, 65%)`
-}
+const REPO_COLORS = [
+  '#f97316',
+  '#3b82f6',
+  '#a855f7',
+  '#22c55e',
+  '#ec4899',
+  '#14b8a6',
+  '#eab308',
+  '#ef4444',
+  '#06b6d4',
+  '#8b5cf6',
+  '#f43f5e',
+  '#10b981',
+  '#f59e0b',
+  '#6366f1',
+  '#84cc16',
+  '#0ea5e9',
+  '#d946ef',
+  '#64748b',
+  '#2dd4bf',
+  '#fb923c',
+]
 
 const repositoriesSummary = computed(() => {
   const repos: Record<string, number> = {}
@@ -27,10 +44,10 @@ const repositoriesSummary = computed(() => {
   })
   return Object.entries(repos)
     .sort((a, b) => b[1] - a[1])
-    .map(([repo, size]) => ({
+    .map(([repo, size], i) => ({
       repo,
       size,
-      color: repoColor(repo),
+      color: REPO_COLORS[i % REPO_COLORS.length],
       count: modelKits.value.filter(k => (k.repository || 'Unknown') === repo).length,
     }))
 })

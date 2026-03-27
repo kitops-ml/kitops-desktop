@@ -36,6 +36,28 @@ function createWindow() {
 
   setMainWindow(mainWindow)
 
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    if (!params.isEditable && !params.selectionText) {
+      return
+    }
+
+    const menuItems = []
+
+    if (params.isEditable) {
+      menuItems.push(
+        { role: 'cut', enabled: params.editFlags.canCut },
+        { role: 'copy', enabled: params.editFlags.canCopy },
+        { role: 'paste', enabled: params.editFlags.canPaste },
+        { type: 'separator' },
+        { role: 'selectAll', enabled: params.editFlags.canSelectAll },
+      )
+    } else if (params.selectionText) {
+      menuItems.push({ role: 'copy', enabled: params.editFlags.canCopy })
+    }
+
+    Menu.buildFromTemplate(menuItems).popup({ window: mainWindow })
+  })
+
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools()

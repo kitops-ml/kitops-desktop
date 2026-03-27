@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { stringify } from 'yaml'
 
+import IconSpinner from '~icons/custom-icons/spinner'
 import IconOverview from '~icons/ri/apps-line'
 import IconBack from '~icons/ri/arrow-left-line'
 import IconChevronRight from '~icons/ri/arrow-right-s-line'
@@ -283,6 +284,7 @@ async function confirmPush(destination: string): Promise<void> {
 
     <div class="flex-1 p-10">
       <div v-if="loading" class="flex flex-col items-center justify-center h-full gap-4 text-gray-01">
+        <IconSpinner class="size-8 animate-spin" />
         <p>Loading...</p>
       </div>
 

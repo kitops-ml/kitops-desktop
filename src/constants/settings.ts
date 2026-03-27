@@ -1,8 +1,13 @@
 export const STORAGE_KEY = 'kitops-desktop-settings'
 
-export const DEFAULT_SETTINGS = {
+export type Settings = {
+  tempDir: string,
+  lastUsedRegistry: string,
+  homeViewTab: 'grid' | 'list',
+}
+
+export const DEFAULT_SETTINGS: Setting = {
   tempDir: '', // Will be set to system default on init
   lastUsedRegistry: '',
-} as const
-
-export type Settings = typeof DEFAULT_SETTINGS
+  homeViewTab: 'grid',
+}

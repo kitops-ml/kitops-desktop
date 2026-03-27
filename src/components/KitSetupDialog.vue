@@ -103,21 +103,33 @@ function handleGetStarted() {
 
           <!-- KITOPS_HOME -->
           <div class="flex items-start gap-2 p-3 bg-elevation-03 border border-gray-03">
-            <span :class="installResult.shellProfileUpdated ? 'text-green-400' : 'text-yellow-400'" class="mt-0.5 shrink-0">
+            <span
+              :class="installResult.shellProfileUpdated ? 'text-green-400' : 'text-yellow-400'" class="mt-0.5 shrink-0">
               {{ installResult.shellProfileUpdated ? '&#10003;' : '!' }}
             </span>
             <div>
-              <p class="text-sm text-off-white">KITOPS_HOME configured</p>
+              <p class="text-sm text-off-white">KITOPS_HOME {{ installResult.shellProfileUpdated ? 'configured' : 'not configured' }}</p>
               <p class="text-xs text-gray-02 font-mono mt-0.5">{{ installResult.kitopsHome }}</p>
-              <p v-if="installResult.shellProfileUpdated" class="text-xs text-gray-02 mt-0.5">
-                Added to {{ installResult.shellProfile }}
+              <p
+                class="text-xs text-gray-02 mt-0.5"
+                :class="{
+                  'text-gold!': !installResult.shellProfileUpdated
+                }">
+                <template v-if="installResult.shellProfileUpdated">
+                  Added to {{ installResult.shellProfile }}
+                </template>
+                <template v-else>
+                  We were unable to setup your shell profile, your shell might already have the KITOPS_HOME environment variable set.<br />
+                  You'll need to set the KITOPS_HOME environment variable manually to use some features of the app.<br />
+                  Please refer to the documentation for instructions.
+                </template>
               </p>
             </div>
           </div>
         </div>
 
         <p class="text-xs text-gray-02 mb-4">
-          Open a new terminal for shell changes to take effect.
+          Remember to open a new terminal for shell changes to take effect.
         </p>
 
         <button

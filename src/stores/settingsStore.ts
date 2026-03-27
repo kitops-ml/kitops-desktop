@@ -11,7 +11,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const tempDir = ref(DEFAULT_SETTINGS.tempDir)
   const systemTempDir = ref('') // Store the system default for reference
   const kitopsHome = ref<string>('-')
-  const lastUsedRegistry = ref<string>('')
+  const lastUsedRegistry = ref<Settings['lastUsedRegistry']>('')
+  const viewMode = ref<Settings['homeViewTab']>(DEFAULT_SETTINGS.homeViewTab)
 
   // Load settings from localStorage
   function loadSettings() {
@@ -25,6 +26,9 @@ export const useSettingsStore = defineStore('settings', () => {
         if (parsed.lastUsedRegistry !== undefined) {
           lastUsedRegistry.value = parsed.lastUsedRegistry
         }
+        if (parsed.homeViewTab !== undefined) {
+          viewMode.value = parsed.homeViewTab
+        }
       }
     } catch (e) {
       logStore.logError('Failed to load settings', e)
@@ -37,6 +41,7 @@ export const useSettingsStore = defineStore('settings', () => {
       const settings: Settings = {
         tempDir: tempDir.value,
         lastUsedRegistry: lastUsedRegistry.value,
+        homeViewTab: viewMode.value,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
     } catch (e) {
@@ -50,7 +55,10 @@ export const useSettingsStore = defineStore('settings', () => {
       tempDir.value = value as string
     } else if (key === 'lastUsedRegistry') {
       lastUsedRegistry.value = value as string
+    } else if (key === 'homeViewTab') {
+      viewMode.value = value as Settings['homeViewTab']
     }
+
     saveSettings()
   }
 
@@ -102,6 +110,7 @@ export const useSettingsStore = defineStore('settings', () => {
     systemTempDir,
     kitopsHome,
     lastUsedRegistry,
+    viewMode,
 
     // Actions
     init,

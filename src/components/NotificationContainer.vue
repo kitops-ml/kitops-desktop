@@ -17,7 +17,7 @@ const { notifications, remove } = useNotification()
         <div
           v-for="notification in notifications"
           :key="notification.id"
-          class="pointer-events-auto flex items-start gap-3 bg-elevation-03 border border-gray-03 border-l-2 px-4 py-3 w-80 shadow-lg"
+          class="pointer-events-auto flex items-start gap-3 bg-surface border border-gray-03 border-l-2 px-4 py-3 w-80 shadow-lg"
           :class="{
             'border-l-success': notification.type === 'success',
             'border-l-error': notification.type === 'error',

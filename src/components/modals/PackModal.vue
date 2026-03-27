@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 
 import type { Registry } from '../../stores/kitStore'
 import Modal from '../Modal.vue'
 import RegistriesSelect from '../ui/RegistriesSelect.vue'
+import RepositoryNameInput from '../ui/RepositoryNameInput.vue'
 
 const props = defineProps<{
   open: boolean
@@ -25,6 +26,9 @@ const form = reactive({
   tag: 'latest',
 })
 
+const repositoryError = ref('')
+const formRef = ref<HTMLFormElement>()
+
 const registryAuthenticated = computed(() => {
   if (!form.registry) {
     return true
@@ -39,6 +43,7 @@ watch(
       form.registry = ''
       form.repository = props.draftName ?? ''
       form.tag = props.initialTag ?? 'latest'
+      nextTick(() => formRef.value?.querySelector<HTMLInputElement>('input')?.focus())
     }
   },
 )
@@ -54,7 +59,7 @@ function onSubmit() {
     <p class="text-gray-01 text-sm mb-6">
       Pack <span class="font-semibold text-off-white">"{{ draftName }}"</span> into a ModelKit
     </p>
-    <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
+    <form ref="formRef" class="flex flex-col gap-4" @submit.prevent="onSubmit">
       <RegistriesSelect v-model="form.registry">
         <template #options>
           <option value="">Local Only (no registry)</option>
@@ -68,10 +73,9 @@ function onSubmit() {
 
       <div class="flex flex-col gap-2">
         <label class="font-semibold text-sm text-gray-01">Repository <span class="text-error">*</span></label>
-        <input
+        <RepositoryNameInput
           v-model="form.repository"
-          type="text"
-          class="py-3 px-4 bg-elevation-03 border border-gray-03 text-off-white text-[0.95rem] font-mono transition-all duration-200 focus:outline-none focus:border-gold focus:bg-elevation-02"
+          v-model:error="repositoryError"
           placeholder="my-model"
           required />
         <p class="text-xs text-gray-02">The name used to reference this ModelKit</p>
@@ -103,7 +107,7 @@ function onSubmit() {
         <button
           type="submit"
           class="flex-1 button-submit"
-          :disabled="loading || !form.repository || !form.tag || (!!form.registry && !registryAuthenticated)">
+          :disabled="loading || !form.repository || !form.tag || (Boolean(form.registry) && !registryAuthenticated) || Boolean(repositoryError)">
           {{ loading ? 'Packing...' : 'Pack' }}
         </button>
       </div>

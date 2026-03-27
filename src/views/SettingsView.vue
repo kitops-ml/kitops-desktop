@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 
+import ConfirmModal from '@/components/modals/ConfirmModal.vue'
 import IconAdd from '~icons/ri/add-line'
 import IconCheck from '~icons/ri/check-line'
 import IconDelete from '~icons/ri/delete-bin-7-line'
@@ -23,6 +24,13 @@ interface StoredRegistry extends Registry {
   username?: string
   isCustom?: boolean
 }
+const DELETE_CONFIRMATION_MODAL = {
+  CLOSED: 0,
+  REMOVE_APP_DATA: 1,
+  REMOVE_ALL: 2,
+} as const
+
+type DeleteConfirmationState = typeof DELETE_CONFIRMATION_MODAL[keyof typeof DELETE_CONFIRMATION_MODAL]
 
 const kitStore = useKitStore()
 const settingsStore = useSettingsStore()
@@ -54,7 +62,10 @@ function showInFolder(path: string) {
 }
 
 onMounted(async () => {
-  await kitStore.getKitVersion()
+  if (!kitStore.kitVersion) {
+    await kitStore.getKitVersion()
+  }
+
   await settingsStore.init()
   await kitStore.loadAuthState()
   if (window.kitops?.kit?.getCliPath) {
@@ -99,6 +110,7 @@ async function handleLogout(registry: StoredRegistry): Promise<void> {
 // Danger zone
 const showDangerZone = ref(false)
 const removingData = ref(false)
+const showConfirmRemoveDataModal = ref<DeleteConfirmationState>(DELETE_CONFIRMATION_MODAL.CLOSED)
 
 async function removeAppData(includeModelKits: boolean): Promise<void> {
   removingData.value = true
@@ -324,27 +336,38 @@ function resetTempDir() {
 
           <div v-else class="flex flex-col gap-3">
             <div class="flex items-start justify-between gap-6 p-4 bg-elevation-03 border border-gray-03">
-              <div>
-                <p class="font-semibold text-off-white mb-1">Remove app data</p>
-                <p class="text-xs text-gray-02">Deletes app preferences, stored Kitfile paths, credentials, and the embedded Kit CLI binary. Does not touch your ModelKits.</p>
+              <div class="text-xs">
+                <p class="font-semibold text-base text-off-white mb-2">Remove app data</p>
+                <p class="mb-1 text-gray-02">Deletes:</p>
+                <ul class="ml-4 space-y-1 mb-2">
+                  <li>App preferences</li>
+                  <li>Stored Kitfile paths (not the actual Kitfiles)</li>
+                  <li>Stored credentials</li>
+                  <li>The embedded Kit CLI binary</li>
+                </ul>
+                <p class="text-gold">Does not touch your ModelKits</p>
               </div>
               <button
                 class="button-secondary border-error/40 text-error hover:border-error shrink-0"
                 :disabled="removingData"
-                @click="removeAppData(false)">
+                @click="showConfirmRemoveDataModal = DELETE_CONFIRMATION_MODAL.REMOVE_APP_DATA">
                 Remove
               </button>
             </div>
 
             <div class="flex items-start justify-between gap-6 p-4 bg-elevation-03 border border-gray-03">
-              <div>
-                <p class="font-semibold text-off-white mb-1">Remove app data + ModelKits</p>
-                <p class="text-xs text-gray-02">Everything above, plus deletes all ModelKits stored in <span class="font-mono">{{ kitopsHome }}</span>. This cannot be undone.</p>
+              <div class="text-xs">
+                <p class="font-semibold text-base text-off-white mb-2">Remove app data + ModelKits</p>
+                <p class="mb-1">Everything above, plus:</p>
+                <ul class="text-gray-02 ml-4 space-y-1 mb-2">
+                  <li>Deletes <span class="text-white">all ModelKits</span> stored in <span class="font-mono text-white">{{ kitopsHome }}</span></li>
+                </ul>
+                <p class="text-xs text-warning">Only proceed if you really know what you're doing.</p>
               </div>
               <button
                 class="button-secondary border-error/40 text-error hover:border-error shrink-0"
                 :disabled="removingData"
-                @click="removeAppData(true)">
+                @click="showConfirmRemoveDataModal = DELETE_CONFIRMATION_MODAL.REMOVE_ALL">
                 Remove all
               </button>
             </div>
@@ -358,7 +381,34 @@ function resetTempDir() {
       </div>
     </div>
 
-    <LoginModal :open="showLoginModal" :registry-name="loginRegistry?.name" :registry-url="loginRegistry?.url" :error="loginError" :loading="loggingIn !== null" @close="closeLoginModal" @submit="handleLogin" />
-    <AddRegistryModal :open="showAddRegistryModal" :error="addRegistryError" :loading="addingRegistry" @close="closeAddRegistryModal" @submit="handleAddRegistry" />
+    <LoginModal
+      :open="showLoginModal"
+      :registry-name="loginRegistry?.name"
+      :registry-url="loginRegistry?.url"
+      :error="loginError"
+      :loading="loggingIn !== null"
+      @close="closeLoginModal" @submit="handleLogin" />
+
+    <AddRegistryModal
+      :open="showAddRegistryModal"
+      :error="addRegistryError"
+      :loading="addingRegistry"
+      @close="closeAddRegistryModal"
+      @submit="handleAddRegistry" />
+
+    <ConfirmModal
+      :open="Boolean(showConfirmRemoveDataModal)"
+      title="Confirm Data Removal"
+      :confirm-label="`Yes, remove data${showConfirmRemoveDataModal === DELETE_CONFIRMATION_MODAL.REMOVE_ALL ? ' and ModelKits' : ''}`"
+      busy-label="Removing..."
+      :disabled="removingData"
+      class="max-w-lg"
+      @close="showConfirmRemoveDataModal = DELETE_CONFIRMATION_MODAL.CLOSED"
+      @confirm="removeAppData(showConfirmRemoveDataModal === DELETE_CONFIRMATION_MODAL.REMOVE_ALL)">
+      <p class="text-gray-01 text-sm mb-4">
+        Are you sure you want to remove all app data{{ showConfirmRemoveDataModal === DELETE_CONFIRMATION_MODAL.REMOVE_ALL ? ' and all your ModelKits' : '' }}?
+      </p>
+      <p class="mb-6 text-sm">This action cannot be undone.</p>
+    </ConfirmModal>
   </div>
 </template>
