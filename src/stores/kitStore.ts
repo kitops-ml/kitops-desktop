@@ -5,6 +5,7 @@ import { computed, ref } from 'vue'
 
 import { sizeToNumber } from '@/utils'
 
+import { useUnpackCache } from '../composables/useUnpackCache'
 import { useLogStore } from './logStore'
 
 export interface Registry {
@@ -53,6 +54,7 @@ export const useKitStore = defineStore('kit', () => {
   const totalSize = computed(() =>
     modelKits.value.reduce((sum, kit) => sum + sizeToNumber(kit.size || '0b'), 0),
   )
+
 
   // Actions
   async function checkForUpdate() {
@@ -308,6 +310,15 @@ export const useKitStore = defineStore('kit', () => {
     registries.value = registries.value.filter(r => r.url !== registryUrl)
   }
 
+  async function clearUnpackedData() {
+    try {
+      const { clearUnpackCache } = useUnpackCache()
+      await clearUnpackCache()
+    } catch (error) {
+      logStore.logError('Failed to clear temp data', error)
+    }
+  }
+
   async function diffModelKits(reference1: string, reference2: string): Promise<DiffResult> {
     return window.kitops.kit.diff(reference1, reference2)
   }
@@ -374,5 +385,6 @@ export const useKitStore = defineStore('kit', () => {
     diffModelKits,
     checkForUpdate,
     updateAvailable,
+    clearUnpackedData,
   }
 })

@@ -7,11 +7,13 @@ import NotificationContainer from './components/NotificationContainer.vue'
 import Sidebar from './components/Sidebar.vue'
 import { useKitStore } from './stores/kitStore'
 import { useLogStore } from './stores/logStore'
+import { useSettingsStore } from './stores/settingsStore'
 import { useUnpackedKitfileStore } from './stores/unpackedKitfileStore'
 
 const router = useRouter()
 const kitStore = useKitStore()
 const logStore = useLogStore()
+const settingsStore = useSettingsStore()
 const draftStore = useUnpackedKitfileStore()
 
 const kitNotFound = ref(false)
@@ -65,6 +67,10 @@ async function initializeApp() {
   kitStore.loadAuthState()
   kitStore.checkForUpdate()
   logStore.logInfo('KitOps Desktop initialized')
+
+  // Initialize settings (needed for temp dir path), then clear leftover
+  // temp data from previous sessions and measure current session usage.
+  settingsStore.init().then(() => kitStore.clearUnpackedData())
 }
 
 function onSetupComplete() {

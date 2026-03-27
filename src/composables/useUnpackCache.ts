@@ -17,14 +17,24 @@ export function useUnpackCache() {
   const settingsStore = useSettingsStore()
   const logStore = useLogStore()
 
-  function getUnpackDir(repository: string, tag: string): string {
+  function getTempBaseDir(): string {
     const tempDir = settingsStore.getEffectiveTempDir()
     if (!tempDir) {
       throw new Error('Temp directory is not initialized yet')
     }
+    return window.kitops.fs.pathJoin(tempDir, 'kitops-desktop')
+  }
+
+  function getUnpackDir(repository: string, tag: string): string {
     const sanitizedRepo = sanitizePath(repository)
     const sanitizedTag = sanitizePath(tag)
-    return window.kitops.fs.pathJoin(tempDir, 'kitops-desktop', `${sanitizedRepo}_${sanitizedTag}`)
+    return window.kitops.fs.pathJoin(getTempBaseDir(), `${sanitizedRepo}_${sanitizedTag}`)
+  }
+
+  async function clearUnpackCache(): Promise<void> {
+    const baseDir = getTempBaseDir()
+    cache.clear()
+    await window.kitops.fs.deleteDir(baseDir)
   }
 
   async function unpackRepository(repository: string, tag: string, layer: Layer): Promise<string> {
@@ -74,5 +84,5 @@ export function useUnpackCache() {
     return result.success ? result.content : null
   }
 
-  return { unpackRepository, getFileContent, getUnpackDir }
+  return { unpackRepository, getFileContent, getUnpackDir, getTempBaseDir, clearUnpackCache }
 }

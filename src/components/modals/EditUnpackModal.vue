@@ -43,7 +43,7 @@ async function startUnpack() {
     }
 
     logStore.logInfo(`Unpacking ${path.value} to temporary directory`, { dir })
-    await window.kitops.kit.unpack(path.value, { dir })
+    await window.kitops.kit.unpack(path.value, { dir, overwrite: true })
     const kitfile = await window.kitops.kit.info(path.value)
     await window.kitops.fs.writeFile(window.kitops.fs.pathJoin(dir, 'Kitfile'), stringify(kitfile))
     logStore.logInfo(`Unpack complete for ${path.value}`, { dir })
