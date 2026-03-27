@@ -1,6 +1,6 @@
 {
   "name": "kitops-desktop",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Desktop UI for KitOps - Visual ModelKit Manager",
   "author": {
     "name": "Jozu",
@@ -85,7 +85,10 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.icns",
-      "target": ["dmg", "zip"]
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ]
     },
     "win": {
       "icon": "build/icon.ico",
