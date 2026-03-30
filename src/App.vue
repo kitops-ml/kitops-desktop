@@ -70,6 +70,7 @@ async function initializeApp() {
 
   // Initialize settings (needed for temp dir path), then clear leftover
   // temp data from previous sessions and measure current session usage.
+  // We should do this at unload instead, but if the user force-quits or the app crashes, the lifecycle isn't guaranteed.
   settingsStore.init().then(() => kitStore.clearUnpackedData())
 }
 
