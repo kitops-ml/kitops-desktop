@@ -35,7 +35,7 @@
     "@kitops/kitops-ts": "^0.0.3",
     "marked": "^17.0.1",
     "pinia": "^3.0.4",
-    "shiki": "^3.22.0",
+    "shiki": "^4.0.2",
     "tailwindcss": "^4.1.18",
     "vue": "^3.5.31",
     "vue-router": "^5.0.4"
