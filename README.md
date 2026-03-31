@@ -2,8 +2,6 @@
 
 A desktop GUI for [KitOps](https://kitops.org) — browse, pack, and manage ModelKits on macOS, Windows, and Linux.
 
-![KitOps Desktop](docs/screenshot.png)
-
 ## What is this?
 
 KitOps Desktop gives you a visual interface for the KitOps CLI. Instead of working with ModelKits purely on the command line, you get a native app to:

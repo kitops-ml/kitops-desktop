@@ -12,8 +12,8 @@ importers:
         specifier: ^1.2.7
         version: 1.2.10
       '@kitops/kitops-ts':
-        specifier: ^0.0.3
-        version: 0.0.3
+        specifier: ^0.0.4
+        version: 0.0.4
       '@tailwindcss/vite':
         specifier: ^4.1.18
         version: 4.2.2(vite@8.0.3(@types/node@25.5.0)(esbuild@0.27.4)(jiti@2.6.1)(yaml@2.8.3))
@@ -536,8 +536,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@kitops/kitops-ts@0.0.3':
-    resolution: {integrity: sha512-4zTxBwa0QgQ5ogGUYsVOoa1jlyl2OC2on4LHpYU1n6wYpMD3zDJUiGyO1HPlVKTELYSuwPAkAqwgeHyctjzzow==}
+  '@kitops/kitops-ts@0.0.4':
+    resolution: {integrity: sha512-yO7ORK94Y1pxTYfV+VQ7XmiGjv4sdnzxpxk39bGLpNFvvGWNkZrlvRx4MBQLgyXzGNB4VFYB9Lv5zXT1eo2isQ==}
     engines: {node: '>=23.0.0'}
 
   '@malept/cross-spawn-promise@2.0.0':
@@ -3790,7 +3790,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@kitops/kitops-ts@0.0.3':
+  '@kitops/kitops-ts@0.0.4':
     dependencies:
       yaml: 2.8.3
 
