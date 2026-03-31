@@ -91,8 +91,10 @@ export const useKitStore = defineStore('kit', () => {
   }
 
   async function getKitfile(path: string): Promise<Kitfile> {
+    const [repo, tag] = path.split(':')
+    const digest = modelKits.value.find(k => k.repository === repo && k.tag === tag)?.digest
     try {
-      const kitfile = await window.kitops.kit.info(path)
+      const kitfile = await window.kitops.kit.info(path, undefined, digest)
       setCurrentKitfile(kitfile)
       return kitfile
     } catch (error) {
@@ -102,8 +104,10 @@ export const useKitStore = defineStore('kit', () => {
   }
 
   async function getManifest(path: string, flags?: InspectFlags): Promise<Manifest> {
+    const [repo, tag] = path.split(':')
+    const digest = modelKits.value.find(k => k.repository === repo && k.tag === tag)?.digest
     try {
-      const manifest = await window.kitops.kit.inspect(path, flags)
+      const manifest = await window.kitops.kit.inspect(path, flags, digest)
       setCurrentManifest(manifest)
       return manifest
     } catch (error) {
@@ -132,7 +136,8 @@ export const useKitStore = defineStore('kit', () => {
         await window.kitops.kit.tag(source, destination)
       }
 
-      return await window.kitops.kit.push(pushRef, undefined, flags)
+      const digest = modelKits.value.find(k => `${k.repository}:${k.tag}` === source)?.digest
+      return await window.kitops.kit.push(pushRef, undefined, flags, digest)
     } catch (error) {
       logStore.logError('Failed to push modelkit', error)
       throw error
@@ -172,7 +177,7 @@ export const useKitStore = defineStore('kit', () => {
     const path = `${repository}:${tagOrDigest}`
     try {
       // Use the provided tagOrDigest - caller should pass digest for untagged ModelKits
-      await window.kitops.kit.remove(path, { force })
+      await window.kitops.kit.remove(path, { force }, modelkit?.digest)
       // Refresh the list after removal
       await fetchModelKits()
     } catch (error) {
@@ -336,7 +341,7 @@ export const useKitStore = defineStore('kit', () => {
       tagging.value = kit.digest
     }
     try {
-      await window.kitops.kit.tag(source, destination)
+      await window.kitops.kit.tag(source, destination, kit?.digest)
       // Refresh the list after tagging
       await fetchModelKits()
     } catch (error) {

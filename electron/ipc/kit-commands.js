@@ -20,12 +20,12 @@ export function register(ipcMain) {
     withLogging('init', { directory, flags }, () => kitops.init(directory, flags)),
   )
 
-  ipcMain.handle('kit:inspect', (e, path, flags) =>
-    withLogging('inspect', { path, flags }, () => kitops.inspect(path, flags)),
+  ipcMain.handle('kit:inspect', (e, path, flags, modelkitDigest) =>
+    withLogging('inspect', { path, flags }, () => kitops.inspect(path, flags), modelkitDigest),
   )
 
-  ipcMain.handle('kit:push', (e, source, destination, flags) =>
-    withLogging('push', { source, destination, flags }, () => kitops.push(source, destination || undefined, flags)),
+  ipcMain.handle('kit:push', (e, source, destination, flags, modelkitDigest) =>
+    withLogging('push', { source, destination, flags }, () => kitops.push(source, destination || undefined, flags), modelkitDigest),
   )
 
   ipcMain.handle('kit:pull', (e, options) => {
@@ -34,20 +34,20 @@ export function register(ipcMain) {
     return withLogging('pull', { reference, flags }, () => kitops.pull(reference, flags))
   })
 
-  ipcMain.handle('kit:info', (e, path, flags) => {
-    return withLogging('info', { path, flags }, () => kitops.info(path, flags))
+  ipcMain.handle('kit:info', (e, path, flags, modelkitDigest) => {
+    return withLogging('info', { path, flags }, () => kitops.info(path, flags), modelkitDigest)
   })
 
-  ipcMain.handle('kit:unpack', (e, path, flags) =>
-    withLogging('unpack', { path, flags }, () => kitops.unpack(path, flags)),
+  ipcMain.handle('kit:unpack', (e, path, flags, modelkitDigest) =>
+    withLogging('unpack', { path, flags }, () => kitops.unpack(path, flags), modelkitDigest),
   )
 
   ipcMain.handle('kit:pack', (e, directory, flags) =>
     withLogging('pack', { directory, flags }, () => kitops.pack(directory, flags)),
   )
 
-  ipcMain.handle('kit:remove', (e, path, flags = {}) =>
-    withLogging('remove', { path, flags }, () => kitops.remove(path, flags)),
+  ipcMain.handle('kit:remove', (e, path, flags = {}, modelkitDigest) =>
+    withLogging('remove', { path, flags }, () => kitops.remove(path, flags), modelkitDigest),
   )
 
   ipcMain.handle('kit:removeAll', (e, force = false) =>
@@ -66,8 +66,8 @@ export function register(ipcMain) {
     withLogging('logout', { registry }, () => kitops.logout(registry)),
   )
 
-  ipcMain.handle('kit:tag', (e, source, destination) =>
-    withLogging('tag', { source, destination }, () => kitops.tag(source, destination)),
+  ipcMain.handle('kit:tag', (e, source, destination, modelkitDigest) =>
+    withLogging('tag', { source, destination }, () => kitops.tag(source, destination), modelkitDigest),
   )
 
   ipcMain.handle('kit:diff', (e, reference1, reference2) =>

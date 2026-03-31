@@ -9,6 +9,7 @@ import * as env from './ipc/env.js'
 import * as filesystem from './ipc/filesystem.js'
 import * as kitCommands from './ipc/kit-commands.js'
 import * as kitfiles from './ipc/kitfiles.js'
+import * as modelkitLogs from './ipc/modelkit-logs.js'
 import { setMainWindow } from './logging.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -192,6 +193,7 @@ function buildMenu() {
 kitCommands.register(ipcMain)
 filesystem.register({ ipcMain, dialog, shell }, getMainWindow)
 kitfiles.register(ipcMain)
+modelkitLogs.register(ipcMain)
 credentials.register({ ipcMain, safeStorage })
 env.register(ipcMain)
 cliSetup.register({ app, ipcMain, dialog }, getMainWindow)
@@ -199,6 +201,7 @@ cliSetup.register({ app, ipcMain, dialog }, getMainWindow)
 app.whenReady().then(() => {
   buildMenu()
   createWindow()
+  modelkitLogs.pruneOldLogs().catch(() => {})
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -9,15 +9,15 @@ window.kitops = {
     checkUpdate: () => ipcRenderer.invoke('kit:checkUpdate'),
     list: (repository) => ipcRenderer.invoke('kit:list', repository),
     init: (directory, flags) => ipcRenderer.invoke('kit:init', directory, flags),
-    info: (path, flags) => ipcRenderer.invoke('kit:info', path, flags),
-    inspect: (path, flags) => ipcRenderer.invoke('kit:inspect', path, flags),
-    push: (source, destination, flags) => ipcRenderer.invoke('kit:push', source, destination, flags),
+    info: (path, flags, modelkitDigest) => ipcRenderer.invoke('kit:info', path, flags, modelkitDigest),
+    inspect: (path, flags, modelkitDigest) => ipcRenderer.invoke('kit:inspect', path, flags, modelkitDigest),
+    push: (source, destination, flags, modelkitDigest) => ipcRenderer.invoke('kit:push', source, destination, flags, modelkitDigest),
     pull: (path, flags) => ipcRenderer.invoke('kit:pull', path, flags),
     pack: (directory, flags) => ipcRenderer.invoke('kit:pack', directory, flags),
-    unpack: (path, flags) => ipcRenderer.invoke('kit:unpack', path, flags),
-    remove: (path, flags) => ipcRenderer.invoke('kit:remove', path, flags),
+    unpack: (path, flags, modelkitDigest) => ipcRenderer.invoke('kit:unpack', path, flags, modelkitDigest),
+    remove: (path, flags, modelkitDigest) => ipcRenderer.invoke('kit:remove', path, flags, modelkitDigest),
     removeAll: (force) => ipcRenderer.invoke('kit:removeAll', force),
-    tag: (source, destination) => ipcRenderer.invoke('kit:tag', source, destination),
+    tag: (source, destination, modelkitDigest) => ipcRenderer.invoke('kit:tag', source, destination, modelkitDigest),
     diff: (reference1, reference2) => ipcRenderer.invoke('kit:diff', reference1, reference2),
 
     login: (registry, username, password, flags) => ipcRenderer.invoke('kit:login', registry, username, password, flags),
@@ -94,5 +94,10 @@ window.kitops = {
 
   env: {
     get: (key) => ipcRenderer.invoke('env:get', key),
+  },
+
+  modelkitLogs: {
+    read: (digest) => ipcRenderer.invoke('modelkitLogs:read', digest),
+    prune: () => ipcRenderer.invoke('modelkitLogs:prune'),
   },
 }

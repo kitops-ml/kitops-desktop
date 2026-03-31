@@ -22,12 +22,14 @@ import IconLicense from '~icons/ri/scales-3-line'
 import IconFramework from '~icons/ri/stack-line'
 import IconManifest from '~icons/ri/survey-line'
 import IconPrompt from '~icons/ri/terminal-box-line'
+import IconLogs from '~icons/ri/terminal-window-line'
 import IconPush from '~icons/ri/upload-line'
 
 import CodeTab from '../components/detail/CodeTab.vue'
 import DatasetsTab from '../components/detail/DatasetsTab.vue'
 import DocsTab from '../components/detail/DocsTab.vue'
 import KitfileTab from '../components/detail/KitfileTab.vue'
+import LogsTab from '../components/detail/LogsTab.vue'
 import ManifestTab from '../components/detail/ManifestTab.vue'
 import ModelTab from '../components/detail/ModelTab.vue'
 import OverviewTab from '../components/detail/OverviewTab.vue'
@@ -135,6 +137,7 @@ const availableTabs = computed(() => {
   }
   tabs.push({ id: 'kitfile', label: 'Kitfile', icon: IconKitfile })
   tabs.push({ id: 'manifest', label: 'Manifest', icon: IconManifest })
+  tabs.push({ id: 'logs', label: 'Logs', icon: IconLogs })
   return tabs
 })
 
@@ -374,6 +377,9 @@ async function confirmPush(destination: string): Promise<void> {
           <ManifestTab
             v-if="activeTab === 'manifest'"
             :yaml="manifestYaml" />
+          <LogsTab
+            v-if="activeTab === 'logs'"
+            :digest="modelKit?.digest || ''" />
         </div>
       </div>
     </div>

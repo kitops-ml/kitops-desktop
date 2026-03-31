@@ -15,6 +15,9 @@ type UserLog = {
   source?: string,
   result?: unknown,
   message: string,
+  digest?: string,
+  repo?: string,
+  tag?: string,
 }
 
 type LogEntry = UserLog & {
