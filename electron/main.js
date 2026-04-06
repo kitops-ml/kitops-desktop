@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'electron'
+import { execFileSync } from 'child_process'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -19,6 +20,22 @@ const getMainWindow = () => mainWindow
 
 if (!process.env.KITOPS_HOME) {
   process.env.KITOPS_HOME = getDefaultKitopsHome()
+}
+
+// On macOS, apps launched from Dock/Finder have a limited PATH.
+// We read the full PATH from the login shell to ensure tools like
+// docker-credential-osxkeychain work when the kit CLI runs.
+// This is important for `kit login` command.
+if (process.platform !== 'win32') {
+  try {
+    const shell = process.env.SHELL || '/bin/zsh'
+    const shellPath = execFileSync(shell, ['-l', '-c', 'echo $PATH'], { timeout: 2000, encoding: 'utf8' }).trim()
+    if (shellPath) {
+      process.env.PATH = shellPath
+    }
+  } catch {
+    // keep whatever PATH we already have
+  }
 }
 
 function createWindow() {
@@ -193,7 +210,7 @@ cliSetup.register({ app, ipcMain, dialog }, getMainWindow)
 app.whenReady().then(() => {
   buildMenu()
   createWindow()
-  modelkitLogs.pruneOldLogs().catch(() => {})
+  modelkitLogs.pruneOldLogs().catch(() => { })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
