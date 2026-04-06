@@ -1,5 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'electron'
 import { execFileSync } from 'child_process'
+import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
