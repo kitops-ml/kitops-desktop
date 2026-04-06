@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDigest, isBinaryContent, isPathFolder, numberToSize, pluralize, sanitizePath, sizeToNumber } from '../utils'
+import { cleanIpcError, formatDigest, isBinaryContent, isPathFolder, numberToSize, pluralize, sanitizePath, sizeToNumber } from '../utils'
 
 describe('sizeToNumber', () => {
   it('parses bare bytes', () => {
@@ -114,5 +114,47 @@ describe('isPathFolder', () => {
 
   it('returns false for file paths', () => {
     expect(isPathFolder('model/weights.bin')).toBe(false)
+  })
+})
+
+describe('cleanIpcError', () => {
+  it('removes IPC wrapper prefix', () => {
+    const error = "Error invoking remote method 'kit:pull': Failed to fetch"
+    expect(cleanIpcError(error)).toBe('Failed to fetch')
+  })
+
+  it('removes Kit command failed prefix', () => {
+    const error = 'Kit command failed with exit code 1: Something went wrong'
+    expect(cleanIpcError(error)).toBe('Something went wrong')
+  })
+
+  it('removes version update notification', () => {
+    const error = 'Kit command failed with exit code 1: Note: A new version of Kit is available! You are using Kit v1.11.0. The latest version is v1.12.0. To see a list of changes, visit https://github.com/kitops-ml/kitops/releases/tag/v1.12.0 To disable this notification, use \'kit version --show-update-notifications=false\' [ERROR] Actual error here'
+    expect(cleanIpcError(error)).toBe('Actual error here')
+  })
+
+  it('extracts [ERROR] portion when present', () => {
+    const error = 'Some prefix [ERROR] The actual error message'
+    expect(cleanIpcError(error)).toBe('The actual error message')
+  })
+
+  it('handles complex real-world docker credential error', () => {
+    const error = 'Error invoking remote method \'kit:pull\': Kit command failed with exit code 1: Note: A new version of Kit is available! You are using Kit v1.11.0. The latest version is v1.12.0. To see a list of changes, visit https://github.com/kitops-ml/kitops/releases/tag/v1.12.0 To disable this notification, use \'kit version --show-update-notifications=false\' [ERROR] Failed to fetch jozu.ml/jozu-quickstarts/fraud-detection:2026-04-02: GET "https://jozu.ml/v2/jozu-quickstarts/fraud-detection/manifests/2026-04-02": exec: "docker-credential-osxkeychain": executable file not found in $PATH'
+    const result = cleanIpcError(error)
+    expect(result).not.toContain('Error invoking')
+    expect(result).not.toContain('Kit command failed')
+    expect(result).not.toContain('new version')
+    expect(result).not.toContain('show-update-notifications')
+    expect(result).toContain('Failed to fetch')
+  })
+
+  it('trims whitespace', () => {
+    const error = '   Something went wrong   '
+    expect(cleanIpcError(error)).toBe('Something went wrong')
+  })
+
+  it('handles plain error messages unchanged', () => {
+    const error = 'Simple error message'
+    expect(cleanIpcError(error)).toBe('Simple error message')
   })
 })

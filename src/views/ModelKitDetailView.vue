@@ -41,6 +41,7 @@ import PushModal from '../components/modals/PushModal.vue'
 import TagModal from '../components/modals/TagModal.vue'
 import { useKitStore } from '../stores/kitStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { cleanIpcError } from '../utils'
 
 const route = useRoute()
 const router = useRouter()
@@ -228,7 +229,8 @@ async function confirmPush(destination: string): Promise<void> {
     router.push({ name: 'modelkit-detail', params: { repository: destRepo, tag: destTag } })
   } catch (err) {
     closePushConfirmModal()
-    alert(err instanceof Error ? err.message : 'Failed to push modelkit')
+    const message = err instanceof Error ? err.message : 'Failed to push modelkit'
+    alert(cleanIpcError(message))
   }
 }
 </script>

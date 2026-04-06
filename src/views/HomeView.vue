@@ -33,7 +33,7 @@ import { useKitStore } from '../stores/kitStore'
 import { useModelKitStore } from '../stores/modelKitStore'
 import type { UnpackedKitfile } from '../stores/unpackedKitfileStore'
 import { useUnpackedKitfileStore } from '../stores/unpackedKitfileStore'
-import { formatDigest, sizeToNumber } from '../utils'
+import { cleanIpcError, formatDigest, sizeToNumber } from '../utils'
 
 type SortOption = 'name' | 'size' | 'author' | 'repository'
 
@@ -179,7 +179,8 @@ async function confirmPack(form: { registry: string; repository: string; tag: st
     await kitStore.fetchModelKits()
     closePackModal()
   } catch (error) {
-    packError.value = error instanceof Error ? error.message : 'Failed to pack kitfile'
+    const message = error instanceof Error ? error.message : 'Failed to pack kitfile'
+    packError.value = cleanIpcError(message)
   }
 }
 
@@ -265,7 +266,8 @@ async function confirmPull(reference: string) {
     notification.success(`Pulled ${reference} successfully`)
     router.push({ name: 'modelkit-detail', params: { repository: repo, tag } })
   } catch (error) {
-    pullError.value = error instanceof Error ? error.message : 'Failed to pull ModelKit'
+    const message = error instanceof Error ? error.message : 'Failed to pull ModelKit'
+    pullError.value = cleanIpcError(message)
   } finally {
     pulling.value = false
   }
@@ -296,7 +298,8 @@ async function handleTag(tagName: string) {
     await kitStore.tagModelKit(source, destination)
     closeTagModal()
   } catch (error) {
-    tagError.value = error instanceof Error ? error.message : 'Failed to tag modelkit'
+    const message = error instanceof Error ? error.message : 'Failed to tag modelkit'
+    tagError.value = cleanIpcError(message)
   }
 }
 

@@ -19,6 +19,7 @@ import InputPath from '../components/ui/InputPath.vue'
 import { useNotification } from '../composables/useNotification'
 import { useKitStore } from '../stores/kitStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { cleanIpcError } from '../utils'
 
 interface StoredRegistry extends Registry {
   username?: string
@@ -95,7 +96,8 @@ async function handleLogin(credentials: { username: string; password: string }):
     await kitStore.loginToRegistry(loginRegistry.value.url, credentials.username, credentials.password)
     closeLoginModal()
   } catch (error) {
-    loginError.value = error instanceof Error ? error.message : 'Login failed'
+    const message = error instanceof Error ? error.message : 'Login failed'
+    loginError.value = cleanIpcError(message)
   }
 }
 
@@ -141,7 +143,8 @@ async function handleAddRegistry(registry: { name: string; url: string; tlsVerif
     await kitStore.addRegistry(registry.name, registry.url, { tlsVerify: registry.tlsVerify ?? true })
     closeAddRegistryModal()
   } catch (error) {
-    addRegistryError.value = error instanceof Error ? error.message : 'Failed to add registry'
+    const message = error instanceof Error ? error.message : 'Failed to add registry'
+    addRegistryError.value = cleanIpcError(message)
   } finally {
     addingRegistry.value = false
   }

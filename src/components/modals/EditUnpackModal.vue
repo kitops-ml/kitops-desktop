@@ -7,6 +7,7 @@ import IconArrowRight from '~icons/ri/arrow-right-line'
 
 import { useUnpackCache } from '../../composables/useUnpackCache'
 import { useLogStore } from '../../stores/logStore'
+import { cleanIpcError } from '../../utils'
 import Modal from '../Modal.vue'
 
 const props = defineProps<{
@@ -49,7 +50,8 @@ async function startUnpack() {
     logStore.logInfo(`Unpack complete for ${path.value}`, { dir })
     emit('complete', dir)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
+    const message = e instanceof Error ? e.message : String(e)
+    error.value = cleanIpcError(message)
     unpacking.value = false
   }
 }
