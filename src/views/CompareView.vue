@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { stringify } from 'yaml'
 
 import IconBack from '~icons/ri/arrow-left-line'
+import IconTag from '~icons/ri/price-tag-3-line'
 
 import { useKitStore } from '../stores/kitStore'
 
@@ -27,13 +28,9 @@ const sidebarOpen = ref(true)
 type Tab = 'kitfile' | 'config' | 'annotations' | 'layers'
 const activeTab = ref<Tab>('kitfile')
 
-const sourceModelKitName = computed(() =>
-  kitStore.modelKits.find(m => getModelKitRef(m) === sourcePath)?.name ?? null,
-)
+const sourceModelKit = computed(() => kitStore.modelKits.find(m => getModelKitRef(m) === sourcePath))
 
-const selectedModelKitName = computed(() =>
-  kitStore.modelKits.find(m => getModelKitRef(m) === selectedReference.value)?.name ?? null,
-)
+const selectedModelKit = computed(() => kitStore.modelKits.find(m => getModelKitRef(m) === selectedReference.value))
 
 const diffResult = ref<DiffResult | null>(null)
 const kitfileDiff = ref<Change[]>([])
@@ -277,6 +274,9 @@ function layerTypeColor(type: Layer) {
               class="w-full text-left px-4 py-3 flex flex-col gap-0.5 border-b border-gray-03 transition-colors hover:bg-elevation-03"
               :class="selectedReference === getModelKitRef(modelkit) ? 'bg-elevation-03 border-l-2 border-l-gold pl-3.5' : ''"
               @click="compare(getModelKitRef(modelkit))">
+              <span class="text-xs font-semibold text-gray-02 whitespace-nowrap flex items-center gap-1">
+                <IconTag class="size-3" />{{ modelkit.tag }}
+              </span>
               <span class="text-sm font-semibold text-off-white whitespace-nowrap">{{ modelkit.name }}</span>
               <span class="text-xs font-mono text-gray-01 whitespace-nowrap">{{ getModelKitRef(modelkit) }}</span>
               <span class="text-xs text-gray-02">{{ modelkit.size }}</span>
@@ -344,13 +344,15 @@ function layerTypeColor(type: Layer) {
                 <div class="flex bg-elevation-02 border-b border-gray-03">
                   <div class="flex-1 min-w-0 flex border-r border-gray-03">
                     <div class="px-4 py-3 text-gray-01 font-sans text-sm min-w-0 flex-1">
-                      <p class="text-xs font-semibold text-gray-02 uppercase tracking-wider mb-0.5">{{ sourceModelKitName ?? sourcePath }}</p>
+                      <p class="text-xs font-semibold text-gray-02 uppercase tracking-wider mb-0.5">{{ sourceModelKit?.name ?? sourcePath }}</p>
+                      <p class="flex items-center gap-1 text-xs my-1"><IconTag class="size-3" />{{ sourceModelKit?.tag ?? null }}</p>
                       <p class="font-mono text-off-white truncate text-left" style="direction: rtl;">{{ sourcePath }}</p>
                     </div>
                   </div>
                   <div class="flex-1 min-w-0 flex">
                     <div class="px-4 py-3 text-gold truncate font-sans text-sm min-w-0 flex-1">
-                      <p class="text-xs font-semibold text-gray-02 uppercase tracking-wider mb-0.5">{{ selectedModelKitName ?? selectedReference }}</p>
+                      <p class="text-xs font-semibold text-gray-02 uppercase tracking-wider mb-0.5">{{ selectedModelKit?.name ?? selectedReference }}</p>
+                      <p class="flex items-center gap-1 text-xs my-1"><IconTag class="size-3" />{{ selectedModelKit?.tag ?? null }}</p>
                       <p class="font-mono text-gold truncate text-left" style="direction: rtl;">{{ selectedReference }}</p>
                     </div>
                   </div>
