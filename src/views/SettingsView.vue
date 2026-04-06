@@ -9,6 +9,7 @@ import IconDelete from '~icons/ri/delete-bin-7-line'
 import IconDownload from '~icons/ri/download-cloud-2-fill'
 import IconExternalLink from '~icons/ri/external-link-line'
 import IconGithub from '~icons/ri/github-line'
+import IconInfo from '~icons/ri/information-line'
 
 import { version } from '../../package.json'
 import type { Registry } from '../../stores/kitStore'
@@ -46,6 +47,24 @@ const tempDirModel = computed({
 const { registries, loggingIn, loggingOut } = storeToRefs(kitStore)
 
 const kitCliPath = ref<string>('kit')
+const isAppInstalled = ref(false)
+const updatingKit = ref(false)
+
+const shellSnippets = ref<{ pathSnippet: string | null; homeSnippet: string | null }>({
+  pathSnippet: null,
+  homeSnippet: null,
+})
+
+const copiedPath = ref(false)
+
+function copySnippet(text: string, flag: { value: boolean }) {
+  navigator.clipboard.writeText(text).then(() => {
+    flag.value = true
+    setTimeout(() => {
+      flag.value = false
+    }, 2000)
+  })
+}
 
 // Login modal state
 const showLoginModal = ref(false)
@@ -72,7 +91,33 @@ onMounted(async () => {
   if (window.kitops?.kit?.getCliPath) {
     kitCliPath.value = await window.kitops.kit.getCliPath()
   }
+  if (window.kitops?.kit?.isAppInstalled) {
+    isAppInstalled.value = await window.kitops.kit.isAppInstalled()
+  }
+  if (window.kitops?.kit?.getShellSnippets) {
+    shellSnippets.value = await window.kitops.kit.getShellSnippets()
+  }
 })
+
+async function updateKit() {
+  updatingKit.value = true
+  try {
+    const result = await window.kitops.kit.installKit()
+    if (!result.success) {
+      notification.error(result.error || 'Update failed')
+      return
+    }
+    await kitStore.getKitVersion()
+    await kitStore.checkForUpdate()
+    kitCliPath.value = result.kitPath || kitCliPath.value
+    notification.success('Kit CLI updated successfully')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Update failed'
+    notification.error(cleanIpcError(message))
+  } finally {
+    updatingKit.value = false
+  }
+}
 
 function openLoginModal(registry: StoredRegistry) {
   loginRegistry.value = registry
@@ -279,13 +324,25 @@ function resetTempDir() {
 
         <div class="bg-surface border border-gray-03  p-6">
           <h3 class="text-xl font-bold mb-2">About Kit CLI</h3>
-          <a v-if="kitStore.updateAvailable" :href="kitStore.updateAvailable.url" target="_blank" class="flex items-center gap-3 p-3 mb-4 bg-elevation-03 border border-gold/30 text-gold no-underline transition-all duration-200 hover:border-gold hover:bg-elevation-03/80">
+          <div v-if="kitStore.updateAvailable" class="flex items-center gap-3 p-3 mb-4 bg-elevation-03 border border-gold/30 text-gold">
             <IconDownload class="size-5 shrink-0" />
-            <div class="flex flex-col gap-0.5">
+            <div class="flex flex-col gap-0.5 flex-1">
               <span class="text-sm font-semibold">Kit v{{ kitStore.updateAvailable.latest }} available</span>
-              <span class="text-xs text-gray-02">You're on v{{ kitStore.updateAvailable.current }} — click to view release notes</span>
+              <span class="text-xs text-gray-02">You're on v{{ kitStore.updateAvailable.current }}</span>
             </div>
-          </a>
+            <div class="flex items-center gap-2">
+              <button
+                v-if="isAppInstalled"
+                :disabled="updatingKit"
+                class="button-primary text-sm py-1 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="updateKit">
+                {{ updatingKit ? 'Updating...' : 'Update' }}
+              </button>
+              <a :href="kitStore.updateAvailable.url" target="_blank" class="text-sm text-gray-02 no-underline hover:text-gold transition-colors">
+                Changelog
+              </a>
+            </div>
+          </div>
           <div class="flex flex-col gap-3 mb-6">
             <div class="flex justify-between pb-3 border-b border-gray-03">
               <span class="text-gray-01 font-semibold">Version</span>
@@ -312,6 +369,23 @@ function resetTempDir() {
               <button class="text-off-white font-mono text-left text-sm truncate max-w-120 hover:text-gold transition-colors cursor-pointer bg-transparent border-none p-0" dir="rtl" :title="kitopsHome" @click="showInFolder(kitopsHome)">{{ kitopsHome }}</button>
             </div>
           </div>
+
+          <template v-if="shellSnippets.homeSnippet || shellSnippets.pathSnippet">
+            <p class="text-sm text-gray-01 mb-3 flex items-center gap-1">
+              <IconInfo class="size-4.5" />
+              Add these lines to your shell profile (eg. <span class="font-mono text-xs bg-gray-03 text-white px-0.5">~/.bashrc</span> or <span class="font-mono text-xs bg-gray-03 text-white px-0.5">~/.zshrc</span>) to use <code class="font-mono">kit</code> from the terminal:
+            </p>
+            <div class="flex flex-col gap-2 mb-6">
+              <div v-if="shellSnippets.pathSnippet" class="flex items-center gap-2 bg-elevation-03 border border-gray-03 px-3 py-2">
+                <code class="flex-1 text-xs font-mono text-off-white truncate">{{ shellSnippets.pathSnippet }}</code>
+                <button
+                  class="shrink-0 text-xs px-2 py-0.5 border border-gray-03 text-gray-02 hover:text-off-white hover:border-gray-02 transition-colors"
+                  @click="copySnippet(shellSnippets.pathSnippet!, copiedPath)">
+                  {{ copiedPath ? 'Copied!' : 'Copy' }}
+                </button>
+              </div>
+            </div>
+          </template>
 
           <div class="flex gap-3">
             <BrowserLink href="https://kitops.org/docs/overview/" class="flex-1 flex items-center justify-center gap-2 p-3 bg-elevation-03 border border-gray-03  text-gray-01 font-semibold transition-all duration-200 hover:bg-surface hover:border-gold hover:text-gold">
@@ -376,8 +450,7 @@ function resetTempDir() {
             </div>
 
             <p class="text-xs text-gray-02 mt-1">
-              To fully uninstall, also remove the app from your Applications folder and clean up
-              <span class="font-mono">/usr/local/bin/kit</span> and any <span class="font-mono"># KitOps</span> lines from your shell profile.
+              To fully uninstall, also remove the app from your Applications folder and clean up your shell profile updates if any.
             </p>
           </div>
         </div>

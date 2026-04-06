@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'e
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { getDefaultKitopsHome, installCommandLineTool } from './ipc/cli-setup.js'
+import { getDefaultKitopsHome } from './ipc/cli-setup.js'
 import * as cliSetup from './ipc/cli-setup.js'
 import * as credentials from './ipc/credentials.js'
 import * as env from './ipc/env.js'
@@ -76,11 +76,6 @@ function sendMenuAction(action) {
 
 function buildMenu() {
   const isMac = process.platform === 'darwin'
-
-  const cliToolItem = {
-    label: 'Install Command Line Tool...',
-    click: () => installCommandLineTool({ app, dialog }, getMainWindow),
-  }
 
   const fileMenu = {
     label: 'File',
@@ -166,8 +161,6 @@ function buildMenu() {
         submenu: [
           { role: 'about' },
           { type: 'separator' },
-          cliToolItem,
-          { type: 'separator' },
           { role: 'services' },
           { type: 'separator' },
           { role: 'hide' },
@@ -183,7 +176,6 @@ function buildMenu() {
     ...(!app.isPackaged ? [{ role: 'viewMenu' }] : []),
     goMenu,
     { role: 'windowMenu' },
-    ...(!isMac ? [{ label: 'Tools', submenu: [cliToolItem] }] : []),
     helpMenu,
   ]
 

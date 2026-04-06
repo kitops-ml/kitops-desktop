@@ -21,70 +21,16 @@ export function getDefaultKitopsHome() {
   }
 }
 
-function getShellProfilePath() {
-  const shell = process.env.SHELL || ''
-  return shell.includes('zsh')
-    ? path.join(os.homedir(), '.zshrc')
-    : path.join(os.homedir(), '.bashrc')
-}
-
-async function setupShellEnvironment(binaryPath, kitopsHome, { createSymlink = true } = {}) {
-  const result = { symlinked: false, shellProfileUpdated: false, shellProfile: null, pathAdded: false }
+function setupShellEnvironment(binaryPath, kitopsHome) {
   if (process.platform === 'win32') {
-    return result
+    return { pathSnippet: null, homeSnippet: null }
   }
 
   const installDir = path.dirname(binaryPath)
-
-  if (createSymlink) {
-    const symlinkPath = '/usr/local/bin/kit'
-    if (process.platform === 'darwin') {
-      try {
-        await new Promise((resolve, reject) => {
-          const script = `do shell script "ln -sf '${binaryPath}' '${symlinkPath}'" with administrator privileges`
-          const child = spawn('osascript', ['-e', script], { stdio: 'pipe' })
-          child.on('error', reject)
-          child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`osascript failed: ${code}`)))
-        })
-        result.symlinked = true
-      } catch {
-        // user cancelled or it failed, fall back to PATH
-      }
-    } else {
-      try {
-        await fs.unlink(symlinkPath).catch(() => { })
-        await fs.symlink(binaryPath, symlinkPath)
-        result.symlinked = true
-      } catch {
-        // no permission, fall back to PATH
-      }
-    }
+  return {
+    pathSnippet: `export PATH="${installDir}:$PATH"`,
+    homeSnippet: `export KITOPS_HOME="${kitopsHome}"`,
   }
-
-  const shellProfile = getShellProfilePath()
-  result.shellProfile = shellProfile
-
-  try {
-    const profileContent = await fs.readFile(shellProfile, 'utf-8').catch(() => '')
-    const lines = []
-
-    if (!profileContent.includes('KITOPS_HOME')) {
-      lines.push(`export KITOPS_HOME="${kitopsHome}"`)
-    }
-    if (!result.symlinked && !profileContent.includes(installDir)) {
-      lines.push(`export PATH="${installDir}:$PATH"`)
-      result.pathAdded = true
-    }
-
-    if (lines.length > 0) {
-      await fs.appendFile(shellProfile, `\n# KitOps (added by KitOps Desktop)\n${lines.join('\n')}\n\n`, 'utf-8')
-      result.shellProfileUpdated = true
-    }
-  } catch (err) {
-    console.error('Failed to update shell profile:', err.message)
-  }
-
-  return result
 }
 
 function validateKitBinary(binPath) {
@@ -149,50 +95,15 @@ function spawnAsync(cmd, args, options = {}) {
   })
 }
 
-export async function installCommandLineTool({ dialog }, getMainWindow) {
-  const kitPath = process.env.KITOPS_CLI_PATH
-  const kitopsHome = process.env.KITOPS_HOME || getDefaultKitopsHome()
-
-  if (!kitPath || !await validateKitBinary(kitPath)) {
-    dialog.showMessageBox(getMainWindow(), {
-      type: 'warning',
-      title: 'Kit CLI Not Installed',
-      message: 'Kit CLI is not installed yet. Use the setup dialog to install it first.',
-      buttons: ['OK'],
-    })
-    return
-  }
-
-  const result = await setupShellEnvironment(kitPath, kitopsHome)
-
-  const details = []
-  if (result.symlinked) {
-    details.push('Symlink created at /usr/local/bin/kit')
-  }
-  if (result.pathAdded) {
-    details.push(`Kit added to PATH in ${result.shellProfile}`)
-  }
-  if (result.shellProfileUpdated) {
-    details.push(`KITOPS_HOME configured in ${result.shellProfile}`)
-  }
-
-  if (details.length === 0) {
-    details.push('Command line tool is already configured.')
-  } else {
-    details.push('\nOpen a new terminal for changes to take effect.')
-  }
-
-  dialog.showMessageBox(getMainWindow(), {
-    type: 'info',
-    title: 'Command Line Tool',
-    message: 'Command Line Tool Setup',
-    detail: details.join('\n'),
-    buttons: ['OK'],
+export function register({ app, ipcMain }) {
+  ipcMain.handle('kit:getShellSnippets', () => {
+    const kitPath = process.env.KITOPS_CLI_PATH
+    const kitopsHome = process.env.KITOPS_HOME || getDefaultKitopsHome()
+    if (!kitPath) {
+      return { pathSnippet: null, homeSnippet: null }
+    }
+    return setupShellEnvironment(kitPath, kitopsHome)
   })
-}
-
-export function register({ app, ipcMain, dialog }, getMainWindow) {
-  ipcMain.handle('kit:installCommandLineTool', () => installCommandLineTool({ app, dialog }, getMainWindow))
 
   ipcMain.handle('kit:checkInstalled', async () => {
     if (process.env.KITOPS_CLI_PATH && await validateKitBinary(process.env.KITOPS_CLI_PATH)) {
@@ -274,7 +185,7 @@ export function register({ app, ipcMain, dialog }, getMainWindow) {
       process.env.KITOPS_CLI_PATH = binaryPath
       process.env.KITOPS_HOME = defaultHome
 
-      const shellSetup = await setupShellEnvironment(binaryPath, defaultHome)
+      const shellSetup = setupShellEnvironment(binaryPath, defaultHome)
       await fs.unlink(archivePath).catch(() => { })
 
       return { success: true, kitPath: binaryPath, kitopsHome: defaultHome, ...shellSetup }
@@ -285,6 +196,21 @@ export function register({ app, ipcMain, dialog }, getMainWindow) {
   })
 
   ipcMain.handle('kit:getCliPath', () => process.env.KITOPS_CLI_PATH || 'kit')
+
+  ipcMain.handle('kit:isAppInstalled', async () => {
+    const binaryName = process.platform === 'win32' ? 'kit.exe' : 'kit'
+    const appKitPath = path.join(app.getPath('userData'), 'kitops', binaryName)
+    const currentPath = process.env.KITOPS_CLI_PATH || ''
+    try {
+      const [resolvedCurrent, resolvedApp] = await Promise.all([
+        fs.realpath(currentPath).catch(() => currentPath),
+        fs.realpath(appKitPath).catch(() => appKitPath),
+      ])
+      return resolvedCurrent === resolvedApp
+    } catch {
+      return false
+    }
+  })
 
   ipcMain.handle('app:removeData', async (e, { includeModelKits = false } = {}) => {
     try {

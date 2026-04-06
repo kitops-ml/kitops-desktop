@@ -60,9 +60,7 @@ export const useKitStore = defineStore('kit', () => {
   async function checkForUpdate() {
     try {
       const update = await window.kitops.kit.checkUpdate()
-      if (update) {
-        updateAvailable.value = update
-      }
+      updateAvailable.value = update ?? null
     } catch (error) {
       logStore.logError('Failed to check for updates', error)
     }
