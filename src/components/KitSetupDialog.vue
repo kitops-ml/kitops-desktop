@@ -15,10 +15,8 @@ const installResult = ref<{
   success: boolean
   kitPath?: string
   kitopsHome?: string
-  symlinked?: boolean
-  shellProfileUpdated?: boolean
-  shellProfile?: string
-  pathAdded?: boolean
+  pathSnippet?: string
+  homeSnippet?: string
 } | null>(null)
 
 async function handleInstallKit() {
@@ -54,7 +52,7 @@ function handleGetStarted() {
       <div class="absolute inset-0 bg-black/70"></div>
 
       <!-- Post-install summary -->
-      <div v-if="installResult" class="relative bg-surface border border-gray-03 p-6 w-full max-w-lg mx-4 shadow-xl">
+      <div v-if="installResult" class="relative bg-surface border border-gray-03 p-6 w-full max-w-xl mx-4 shadow-xl">
         <h3 class="text-xl font-bold mb-2">Kit CLI Installed</h3>
         <p class="text-gray-01 mb-4">
           Kit CLI has been installed successfully. Here's what was set up:
@@ -70,67 +68,18 @@ function handleGetStarted() {
             </div>
           </div>
 
-          <!-- Symlink or PATH -->
-          <div class="flex items-start gap-2 p-3 bg-elevation-03 border border-gray-03">
-            <span :class="installResult.symlinked || installResult.pathAdded ? 'text-green-400' : 'text-yellow-400'" class="mt-0.5 shrink-0">
-              {{ installResult.symlinked || installResult.pathAdded ? '&#10003;' : '!' }}
-            </span>
-            <div>
-              <p class="text-sm text-off-white">
-                <template v-if="installResult.symlinked">
-                  Command line tool linked
-                </template>
-                <template v-else-if="installResult.pathAdded">
-                  Kit added to PATH
-                </template>
-                <template v-else>
-                  Command line tool not linked
-                </template>
-              </p>
-              <p class="text-xs text-gray-02 mt-0.5">
-                <template v-if="installResult.symlinked">
-                  Symlink created at /usr/local/bin/kit
-                </template>
-                <template v-else-if="installResult.pathAdded">
-                  Added to PATH in {{ installResult.shellProfile }}
-                </template>
-                <template v-else>
-                  You can set this up later from the app menu
-                </template>
-              </p>
+          <!-- Shell setup snippets -->
+          <div v-if="installResult.pathSnippet || installResult.homeSnippet">
+            <div class="mt-6 text-sm">
+              Optionally, you can add Kit CLI to your shell profile (<code class="font-mono">~/.zshrc</code> or <code class="font-mono">~/.bashrc</code>) for easier access from the terminal:
             </div>
+            <pre class="my-2 text-xs font-mono bg-elevation-01 border border-gray-03 px-3 py-2 whitespace-pre-wrap break-all">{{ [installResult.pathSnippet, installResult.homeSnippet].filter(Boolean).join('\n') }}</pre>
           </div>
 
-          <!-- KITOPS_HOME -->
-          <div class="flex items-start gap-2 p-3 bg-elevation-03 border border-gray-03">
-            <span
-              :class="installResult.shellProfileUpdated ? 'text-green-400' : 'text-yellow-400'" class="mt-0.5 shrink-0">
-              {{ installResult.shellProfileUpdated ? '&#10003;' : '!' }}
-            </span>
-            <div>
-              <p class="text-sm text-off-white">KITOPS_HOME {{ installResult.shellProfileUpdated ? 'configured' : 'not configured' }}</p>
-              <p class="text-xs text-gray-02 font-mono mt-0.5">{{ installResult.kitopsHome }}</p>
-              <p
-                class="text-xs text-gray-02 mt-0.5"
-                :class="{
-                  'text-gold!': !installResult.shellProfileUpdated
-                }">
-                <template v-if="installResult.shellProfileUpdated">
-                  Added to {{ installResult.shellProfile }}
-                </template>
-                <template v-else>
-                  We were unable to setup your shell profile, your shell might already have the KITOPS_HOME environment variable set.<br />
-                  You'll need to set the KITOPS_HOME environment variable manually to use some features of the app.<br />
-                  Please refer to the documentation for instructions.
-                </template>
-              </p>
-            </div>
-          </div>
+          <p class="text-xs text-gray-02 mb-8">
+            Open a new terminal after updating your shell profile for changes to take effect.
+          </p>
         </div>
-
-        <p class="text-xs text-gray-02 mb-4">
-          Remember to open a new terminal for shell changes to take effect.
-        </p>
 
         <button
           class="w-full button-submit"

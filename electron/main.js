@@ -1,8 +1,9 @@
+import { execFileSync } from 'child_process'
 import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'electron'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { getDefaultKitopsHome, installCommandLineTool } from './ipc/cli-setup.js'
+import { getDefaultKitopsHome } from './ipc/cli-setup.js'
 import * as cliSetup from './ipc/cli-setup.js'
 import * as credentials from './ipc/credentials.js'
 import * as env from './ipc/env.js'
@@ -19,6 +20,23 @@ const getMainWindow = () => mainWindow
 
 if (!process.env.KITOPS_HOME) {
   process.env.KITOPS_HOME = getDefaultKitopsHome()
+}
+
+// On non-Windows platforms, apps launched from a GUI (Dock/Finder/DE) have a
+// limited PATH. We read the full PATH from the login shell to ensure tools like
+// docker-credential-osxkeychain work when the kit CLI runs.
+// This is important for `kit login` command.
+if (process.platform !== 'win32') {
+  try {
+    const loginShell = process.env.SHELL || '/bin/sh'
+    const output = execFileSync(loginShell, ['-l', '-c', "printf '%s' \"$PATH\""], { timeout: 2000, encoding: 'utf8' })
+    const loginPath = output.split('\n')[0].trim()
+    if (loginPath) {
+      process.env.PATH = loginPath
+    }
+  } catch {
+    // keep whatever PATH we already have
+  }
 }
 
 function createWindow() {
@@ -76,11 +94,6 @@ function sendMenuAction(action) {
 
 function buildMenu() {
   const isMac = process.platform === 'darwin'
-
-  const cliToolItem = {
-    label: 'Install Command Line Tool...',
-    click: () => installCommandLineTool({ app, dialog }, getMainWindow),
-  }
 
   const fileMenu = {
     label: 'File',
@@ -166,8 +179,6 @@ function buildMenu() {
         submenu: [
           { role: 'about' },
           { type: 'separator' },
-          cliToolItem,
-          { type: 'separator' },
           { role: 'services' },
           { type: 'separator' },
           { role: 'hide' },
@@ -183,7 +194,6 @@ function buildMenu() {
     ...(!app.isPackaged ? [{ role: 'viewMenu' }] : []),
     goMenu,
     { role: 'windowMenu' },
-    ...(!isMac ? [{ label: 'Tools', submenu: [cliToolItem] }] : []),
     helpMenu,
   ]
 
@@ -196,12 +206,12 @@ kitfiles.register(ipcMain)
 modelkitLogs.register(ipcMain)
 credentials.register({ ipcMain, safeStorage })
 env.register(ipcMain)
-cliSetup.register({ app, ipcMain, dialog }, getMainWindow)
+cliSetup.register({ app, ipcMain })
 
 app.whenReady().then(() => {
   buildMenu()
   createWindow()
-  modelkitLogs.pruneOldLogs().catch(() => {})
+  modelkitLogs.pruneOldLogs().catch(() => { })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

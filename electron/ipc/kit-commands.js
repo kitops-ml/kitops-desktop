@@ -7,7 +7,9 @@ export function register(ipcMain) {
 
   ipcMain.handle('kit:checkUpdate', async () => {
     const result = await kitops.kit('version')
-    const match = result.stderr.match(/You are using Kit v([\d.]+)\. The latest version is v([\d.]+)[\s\S]*?(https:\/\/\S+)/)
+    const match = result.stderr
+      .match(/You are using Kit v([\d.]+)\. The latest version is v([\d.]+)[\s\S]*?(https:\/\/\S+)/)
+
     if (!match) {
       return null
     }

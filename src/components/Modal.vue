@@ -2,12 +2,19 @@
 const props = withDefaults(
   defineProps<{
     open: boolean
-    class?: string
+    class?: string,
+    closeOnBackdropClick?: boolean
   }>(),
-  { class: 'max-w-lg' },
+  { class: 'max-w-lg', closeOnBackdropClick: false },
 )
 
 const emit = defineEmits<{ close: [] }>()
+
+function handleBackdropClick() {
+  if (props.closeOnBackdropClick) {
+    emit('close')
+  }
+}
 </script>
 
 <template>
@@ -15,9 +22,9 @@ const emit = defineEmits<{ close: [] }>()
     <div
       v-if="open"
       class="fixed inset-0 z-50 flex items-center justify-center"
-      @click.self="emit('close')">
+      @click.self="handleBackdropClick()">
       <!-- Backdrop -->
-      <div class="absolute inset-0 bg-black/70" @click="emit('close')"></div>
+      <div class="absolute inset-0 bg-black/70" @click="handleBackdropClick()"></div>
       <!-- Modal Content -->
       <div class="relative bg-surface border border-gray-03 p-6 w-full mx-4 shadow-xl" :class="props.class">
         <slot />

@@ -13,6 +13,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const kitopsHome = ref<string>('-')
   const lastUsedRegistry = ref<Settings['lastUsedRegistry']>('')
   const viewMode = ref<Settings['homeViewTab']>(DEFAULT_SETTINGS.homeViewTab)
+  const pushUsernameByRegistry = ref<Settings['pushUsernameByRegistry']>({})
 
   // Load settings from localStorage
   function loadSettings() {
@@ -29,6 +30,9 @@ export const useSettingsStore = defineStore('settings', () => {
         if (parsed.homeViewTab !== undefined) {
           viewMode.value = parsed.homeViewTab
         }
+        if (parsed.pushUsernameByRegistry !== undefined) {
+          pushUsernameByRegistry.value = parsed.pushUsernameByRegistry
+        }
       }
     } catch (e) {
       logStore.logError('Failed to load settings', e)
@@ -42,6 +46,7 @@ export const useSettingsStore = defineStore('settings', () => {
         tempDir: tempDir.value,
         lastUsedRegistry: lastUsedRegistry.value,
         homeViewTab: viewMode.value,
+        pushUsernameByRegistry: pushUsernameByRegistry.value,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
     } catch (e) {
@@ -57,8 +62,15 @@ export const useSettingsStore = defineStore('settings', () => {
       lastUsedRegistry.value = value as string
     } else if (key === 'homeViewTab') {
       viewMode.value = value as Settings['homeViewTab']
+    } else if (key === 'pushUsernameByRegistry') {
+      pushUsernameByRegistry.value = value as Record<string, string>
     }
 
+    saveSettings()
+  }
+
+  function rememberPushUsername(registryUrl: string, username: string) {
+    pushUsernameByRegistry.value = { ...pushUsernameByRegistry.value, [registryUrl]: username }
     saveSettings()
   }
 
@@ -111,6 +123,7 @@ export const useSettingsStore = defineStore('settings', () => {
     kitopsHome,
     lastUsedRegistry,
     viewMode,
+    pushUsernameByRegistry,
 
     // Actions
     init,
@@ -120,5 +133,6 @@ export const useSettingsStore = defineStore('settings', () => {
     resetTempDirToDefault,
     setTempDir,
     updateSetting,
+    rememberPushUsername,
   }
 })

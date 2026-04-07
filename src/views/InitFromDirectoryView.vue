@@ -8,6 +8,7 @@ import IconError from '~icons/ri/error-warning-line'
 
 import { useNotification } from '../composables/useNotification'
 import { useUnpackedKitfileStore } from '../stores/unpackedKitfileStore'
+import { cleanIpcError } from '../utils'
 
 const router = useRouter()
 const draftStore = useUnpackedKitfileStore()
@@ -81,7 +82,8 @@ async function confirmInit(): Promise<void> {
     notification.success('Kitfile initialized successfully')
     router.push({ name: 'home', query: { refresh: 'true' } })
   } catch (error) {
-    initError.value = error instanceof Error ? error.message : 'Failed to initialize Kitfile'
+    const message = error instanceof Error ? error.message : 'Failed to initialize Kitfile'
+    initError.value = cleanIpcError(message)
     notification.error('Failed to initialize Kitfile', error)
   } finally {
     isInitializing.value = false

@@ -97,3 +97,37 @@ export function toRelativePath(path: string, baseDir: string): string {
   const withTrailing = relative + trailingSlash
   return relative.startsWith('..') ? withTrailing : '.' + sep + withTrailing
 }
+
+// Cleans up IPC and kitops-ts error messages by removing boilerplate, version notices, and noise
+// Returns a short, user-friendly error message
+export function cleanIpcError(message: string): string {
+  // Remove IPC wrapper prefix (e.g., "Error invoking remote method 'kit:pull': ")
+  let cleaned = message.replace(/^Error invoking remote method '[^']+': /, '')
+
+  // Remove "Kit command failed with exit code X: " prefix
+  cleaned = cleaned.replace(/^Kit command failed with exit code \d+: /, '')
+
+  // Remove version update notification that spans multiple lines
+  cleaned = cleaned.replace(
+    /Note: A new version of Kit is available!.*?show-update-notifications=false'\s*/s,
+    '',
+  )
+
+  // Extract the actual error message after [ERROR] if it exists
+  const errorMatch = cleaned.match(/\[ERROR\]\s*(.+?)(?:\s*$|(?=\[))/s)
+  if (errorMatch) {
+    cleaned = errorMatch[1]
+  }
+
+  // Clean up common error patterns for readability
+  // Simplify credential and network errors
+  if (cleaned.includes('docker-credential')) {
+    // Extract just the key part of credential errors
+    const credMatch = cleaned.match(/(Failed to fetch [^:]+):|exec: "([^"]+)": ([^"]+)/)
+    if (credMatch) {
+      cleaned = credMatch[1] || `${credMatch[2]}: ${credMatch[3]}`
+    }
+  }
+
+  return cleaned.trim()
+}

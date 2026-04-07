@@ -27,8 +27,9 @@ window.kitops = {
     checkInstalled: () => ipcRenderer.invoke('kit:checkInstalled'),
     setCliPath: (kitBinaryPath) => ipcRenderer.invoke('kit:setCliPath', kitBinaryPath),
     installKit: () => ipcRenderer.invoke('kit:installKit'),
-    installCommandLineTool: () => ipcRenderer.invoke('kit:installCommandLineTool'),
+    getShellSnippets: () => ipcRenderer.invoke('kit:getShellSnippets'),
     getCliPath: () => ipcRenderer.invoke('kit:getCliPath'),
+    isAppInstalled: () => ipcRenderer.invoke('kit:isAppInstalled'),
 
   },
 

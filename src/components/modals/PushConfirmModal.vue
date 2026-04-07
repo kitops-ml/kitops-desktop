@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 
+import { useKitStore } from '../../stores/kitStore'
+import { useSettingsStore } from '../../stores/settingsStore'
 import RegistriesSelect from '../ui/RegistriesSelect.vue'
 import RepositoryNameInput from '../ui/RepositoryNameInput.vue'
 import ConfirmModal from './ConfirmModal.vue'
@@ -13,6 +16,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ close: []; confirm: [destination: string] }>()
+
+const kitStore = useKitStore()
+const settingsStore = useSettingsStore()
+const { registries } = storeToRefs(kitStore)
+const { pushUsernameByRegistry } = storeToRefs(settingsStore)
 
 const form = reactive({
   repository: '',
@@ -30,20 +38,56 @@ const sourceParts = computed(() => {
   return { registry, repository: rest.join('/'), tag }
 })
 
-const destination = computed(() => {
-  const repository = (form.repository || sourceParts.value.repository)
-  const tag = (form.tag || sourceParts.value.tag)
+// The model name without any org/user prefix from the source
+const sourceModelName = computed(() => {
+  const parts = sourceParts.value.repository.split('/')
+  return parts[parts.length - 1]
+})
 
+const destination = computed(() => {
+  const repository = form.repository || sourceParts.value.repository
+  const tag = form.tag || sourceParts.value.tag
   return `${destinationRegistry.value}/${repository}:${tag}`
 })
 
+function localPart(value: string): string {
+  return value.includes('@') ? value.split('@')[0] : value
+}
+
+function defaultRepositoryForRegistry(registryUrl: string): string {
+  const remembered = pushUsernameByRegistry.value[registryUrl]
+  if (remembered) {
+    return `${remembered}/${sourceModelName.value}`
+  }
+
+  const registry = registries.value.find(r => r.url === registryUrl)
+  if (registry?.username) {
+    return `${localPart(registry.username)}/${sourceModelName.value}`
+  }
+
+  return sourceModelName.value
+}
+
 watch(() => props.open, (val) => {
   if (val) {
-    form.repository = sourceParts.value.repository
     form.tag = sourceParts.value.tag
     nextTick(() => firstInputRef.value?.querySelector<HTMLInputElement>('input')?.focus())
   }
 })
+
+watch(destinationRegistry, (registryUrl) => {
+  if (registryUrl) {
+    form.repository = defaultRepositoryForRegistry(registryUrl)
+  }
+})
+
+function handleConfirm() {
+  const firstSegment = form.repository.split('/')[0]
+  if (firstSegment && form.repository.includes('/')) {
+    settingsStore.rememberPushUsername(destinationRegistry.value, localPart(firstSegment))
+  }
+  emit('confirm', destination.value)
+}
 </script>
 
 <template>
@@ -55,7 +99,7 @@ watch(() => props.open, (val) => {
     :disabled="!destinationRegistry || !form.repository || Boolean(repositoryError) || !form.tag"
     class="max-w-2xl"
     @close="$emit('close')"
-    @confirm="emit('confirm', destination)">
+    @confirm="handleConfirm">
     <p class="text-gray-01 text-sm mb-4">Are you sure you want to push this ModelKit?</p>
     <RegistriesSelect v-model="destinationRegistry" class="mb-4" />
     <div>
