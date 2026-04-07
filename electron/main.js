@@ -22,16 +22,17 @@ if (!process.env.KITOPS_HOME) {
   process.env.KITOPS_HOME = getDefaultKitopsHome()
 }
 
-// On macOS, apps launched from Dock/Finder have a limited PATH.
-// We read the full PATH from the login shell to ensure tools like
+// On non-Windows platforms, apps launched from a GUI (Dock/Finder/DE) have a
+// limited PATH. We read the full PATH from the login shell to ensure tools like
 // docker-credential-osxkeychain work when the kit CLI runs.
 // This is important for `kit login` command.
 if (process.platform !== 'win32') {
   try {
-    const shell = process.env.SHELL || '/bin/zsh'
-    const shellPath = execFileSync(shell, ['-l', '-c', 'echo $PATH'], { timeout: 2000, encoding: 'utf8' }).trim()
-    if (shellPath) {
-      process.env.PATH = shellPath
+    const loginShell = process.env.SHELL || '/bin/sh'
+    const output = execFileSync(loginShell, ['-l', '-c', "printf '%s' \"$PATH\""], { timeout: 2000, encoding: 'utf8' })
+    const loginPath = output.split('\n')[0].trim()
+    if (loginPath) {
+      process.env.PATH = loginPath
     }
   } catch {
     // keep whatever PATH we already have
@@ -205,7 +206,7 @@ kitfiles.register(ipcMain)
 modelkitLogs.register(ipcMain)
 credentials.register({ ipcMain, safeStorage })
 env.register(ipcMain)
-cliSetup.register({ app, ipcMain, dialog }, getMainWindow)
+cliSetup.register({ app, ipcMain })
 
 app.whenReady().then(() => {
   buildMenu()

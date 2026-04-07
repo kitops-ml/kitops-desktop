@@ -50,9 +50,8 @@ const kitCliPath = ref<string>('kit')
 const isAppInstalled = ref(false)
 const updatingKit = ref(false)
 
-const shellSnippets = ref<{ pathSnippet: string | null; homeSnippet: string | null }>({
+const shellSnippets = ref<{ pathSnippet: string | null }>({
   pathSnippet: null,
-  homeSnippet: null,
 })
 
 const copiedPath = ref(false)
@@ -370,7 +369,7 @@ function resetTempDir() {
             </div>
           </div>
 
-          <template v-if="shellSnippets.homeSnippet || shellSnippets.pathSnippet">
+          <template v-if="shellSnippets.pathSnippet">
             <p class="text-sm text-gray-01 mb-3 flex items-center gap-1">
               <IconInfo class="size-4.5" />
               Add these lines to your shell profile (eg. <span class="font-mono text-xs bg-gray-03 text-white px-0.5">~/.bashrc</span> or <span class="font-mono text-xs bg-gray-03 text-white px-0.5">~/.zshrc</span>) to use <code class="font-mono">kit</code> from the terminal:

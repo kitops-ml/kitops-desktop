@@ -73,7 +73,7 @@ function handleGetStarted() {
             <div class="mt-6 text-sm">
               Optionally, you can add Kit CLI to your shell profile (<code class="font-mono">~/.zshrc</code> or <code class="font-mono">~/.bashrc</code>) for easier access from the terminal:
             </div>
-            <pre class="my-2 text-xs font-mono bg-elevation-01 border border-gray-03 px-3 py-2 whitespace-pre-wrap break-all"><template v-if="installResult.pathSnippet">{{ installResult.pathSnippet }}</template></pre>
+            <pre class="my-2 text-xs font-mono bg-elevation-01 border border-gray-03 px-3 py-2 whitespace-pre-wrap break-all">{{ [installResult.pathSnippet, installResult.homeSnippet].filter(Boolean).join('\n') }}</pre>
           </div>
 
           <p class="text-xs text-gray-02 mb-8">
