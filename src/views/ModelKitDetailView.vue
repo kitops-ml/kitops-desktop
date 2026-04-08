@@ -1,5 +1,6 @@
 
 <script setup lang="ts">
+import type { ModelKit } from '@kitops/kitops-ts'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -12,10 +13,12 @@ import IconChevronRight from '~icons/ri/arrow-right-s-line'
 import IconModelKit from '~icons/ri/box-2-line'
 import IconCode from '~icons/ri/code-line'
 import IconDataset from '~icons/ri/database-2-line'
+import IconDelete from '~icons/ri/delete-bin-7-line'
 import IconKitfile from '~icons/ri/file-code-line'
 import IconEdit from '~icons/ri/file-edit-line'
 import IconDoc from '~icons/ri/file-line'
 import IconCompare from '~icons/ri/increase-decrease-line'
+import IconMore from '~icons/ri/more-line'
 import IconTag from '~icons/ri/price-tag-3-line'
 import IconModel from '~icons/ri/robot-2-line'
 import IconLicense from '~icons/ri/scales-3-line'
@@ -35,10 +38,13 @@ import ModelTab from '../components/detail/ModelTab.vue'
 import OverviewTab from '../components/detail/OverviewTab.vue'
 import PromptsTab from '../components/detail/PromptsTab.vue'
 import TagsFlyout from '../components/detail/TagsFlyout.vue'
+import DeleteModelKitModal from '../components/modals/DeleteModelKitModal.vue'
 import EditUnpackModal from '../components/modals/EditUnpackModal.vue'
 import PushConfirmModal from '../components/modals/PushConfirmModal.vue'
 import PushModal from '../components/modals/PushModal.vue'
 import TagModal from '../components/modals/TagModal.vue'
+import DropdownMenu from '../components/ui/DropdownMenu.vue'
+import { useNotification } from '../composables/useNotification'
 import { useKitStore } from '../stores/kitStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { cleanIpcError } from '../utils'
@@ -47,6 +53,7 @@ const route = useRoute()
 const router = useRouter()
 const kitStore = useKitStore()
 const settingsStore = useSettingsStore()
+const notification = useNotification()
 
 const { currentKitfile: kitfile, currentManifest: manifest, tagging, pushing } = storeToRefs(kitStore)
 const loading = ref(true)
@@ -67,6 +74,10 @@ const pushConfirmDestPath = ref('')
 
 const showEditModal = ref(false)
 const showTagsSidebar = ref(false)
+
+const showDeleteConfirm = ref(false)
+const isDeleting = ref<boolean>(false)
+
 
 const modelKit = computed(() =>
   kitStore.modelKits.find(k => k.repository === repository && k.tag === tag),
@@ -233,6 +244,36 @@ async function confirmPush(destination: string): Promise<void> {
     alert(cleanIpcError(message))
   }
 }
+
+async function removeModelKit(modelkit: ModelKit) {
+  const tagOrDigest = (!modelkit.tag || modelkit.tag === '<none>') ? modelkit.digest : modelkit.tag
+  await kitStore.removeModelKit(modelkit.repository, tagOrDigest)
+}
+
+function openDeleteConfirm() {
+  showDeleteConfirm.value = true
+}
+
+function cancelDelete() {
+  showDeleteConfirm.value = false
+}
+
+async function confirmDelete() {
+  isDeleting.value = true
+  const { name, repository, tag } = modelKit.value
+  const label = `${name || repository}:${tag && tag !== '<none>' ? tag : 'latest'}`
+
+  try {
+    await removeModelKit(modelKit.value)
+    notification.success(`"${label}" deleted successfully`)
+    router.push('/')
+  } catch {
+    notification.error(`Failed to delete "${label}"`)
+  } finally {
+    showDeleteConfirm.value = false
+    isDeleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -248,19 +289,6 @@ async function confirmPush(destination: string): Promise<void> {
 
         <div class="flex gap-3">
           <button
-            v-if="tag !== '<none>'"
-            class="flex items-center gap-2 button-secondary"
-            @click="showEditModal = true">
-            <IconEdit class="size-4" />
-            Edit
-          </button>
-          <button
-            class="flex items-center gap-2 button-secondary"
-            @click="router.push({ name: 'compare', params: { repository, tag } })">
-            <IconCompare class="size-4" />
-            Compare
-          </button>
-          <button
             class="flex items-center gap-2 button-secondary"
             :disabled="tagging !== null"
             @click="openTagModal">
@@ -274,13 +302,48 @@ async function confirmPush(destination: string): Promise<void> {
             <IconPush class="size-4" />
             {{ pushing ? 'Pushing...' : 'Push' }}
           </button>
+
+          <DropdownMenu>
+            <template #trigger="{ toggle }">
+              <button
+                class="flex items-center gap-2 button-secondary"
+                @click="toggle">
+                <IconMore class="size-4" />
+                More
+              </button>
+            </template>
+            <template #default="{ close }">
+              <button
+                v-if="tag !== '<none>'"
+                class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface text-gray-01 hover:text-off-white"
+                @click="showEditModal = true; close()">
+                <IconEdit class="size-4" />
+                Edit
+              </button>
+              <button
+                class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-surface text-gray-01 hover:text-off-white"
+                @click="router.push({ name: 'compare', params: { repository, tag } }); close()">
+                <IconCompare class="size-4" />
+                Compare
+              </button>
+              <div v-if="tag !== '<none>'" class="my-1 border-t border-gray-03" />
+              <button
+                v-if="tag !== '<none>'"
+                class="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-red-600/10 text-error"
+                @click="openDeleteConfirm(); close()">
+                <IconDelete class="size-4" />
+                Delete
+              </button>
+            </template>
+          </DropdownMenu>
+
           <template v-if="modelkitTags.length > 1">
             <div class="w-px h-6 bg-gray-03 self-center" />
             <button
               class="flex items-center gap-2 button-action text-gray-01 hover:text-off-white"
               @click="showTagsSidebar = true">
               <IconTag class="size-4" />
-              More tags
+              All tags
               <span class="py-0.5 px-1.5 bg-elevation-03 text-xs font-semibold">{{ modelkitTags.length }}</span>
               <IconChevronRight class="size-4 -ml-1" />
             </button>
@@ -355,7 +418,10 @@ async function confirmPush(destination: string): Promise<void> {
         <div class="min-h-75">
           <OverviewTab
             v-if="activeTab === 'overview'"
-            :repository="repository" :tag="tag" :manifest-version="kitfile.manifestVersion"
+            :repository="repository"
+            :tag="tag"
+            :manifest-version="kitfile.manifestVersion"
+            :size="modelKit.size"
             :docs="kitfile.docs || []" />
 
           <ModelTab
@@ -427,6 +493,13 @@ async function confirmPush(destination: string): Promise<void> {
       :size="modelKit?.size"
       @close="showEditModal = false"
       @complete="onEditComplete" />
+
+    <DeleteModelKitModal
+      :open="showDeleteConfirm"
+      :name="modelKit?.name"
+      :tag="tag"
+      @close="cancelDelete"
+      @confirm="confirmDelete" />
   </div>
 </template>
 

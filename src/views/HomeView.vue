@@ -193,7 +193,6 @@ async function removeDraft(event: Event, draft: UnpackedKitfile) {
   }
 }
 
-
 function openDeleteConfirm(modelkit: ModelKit) {
   selectedModelKit.value = modelkit
   showDeleteConfirm.value = true
@@ -562,10 +561,41 @@ function changeViewMode(mode: Settings['homeViewTab']) {
       </div>
     </div>
 
-    <PruneConfirmModal :open="showPruneConfirm" @close="showPruneConfirm = false" @confirm="confirmPrune" />
-    <PullModal :open="showPullModal" :error="pullError" :loading="pulling" @close="closePullModal" @submit="confirmPull" />
-    <PackModal :open="showPackModal" :draft-name="selectedDraft?.name" :registries="registries" :error="packError" :loading="draftStore.packing !== null" @close="closePackModal" @submit="confirmPack" />
-    <TagModal :open="showTagModal" :repository="selectedModelKit?.repository ?? ''" :tag="selectedModelKit?.tag ?? ''" :error="tagError" :loading="kitStore.tagging !== null" @close="closeTagModal" @submit="handleTag" />
-    <DeleteModelKitModal :open="showDeleteConfirm" :name="selectedModelKit?.name" :tag="selectedModelKit?.tag || 'latest'" @close="cancelDelete" @confirm="confirmDelete" />
+    <PruneConfirmModal
+      :open="showPruneConfirm"
+      @close="showPruneConfirm = false"
+      @confirm="confirmPrune" />
+
+    <PullModal
+      :open="showPullModal"
+      :error="pullError"
+      :loading="pulling"
+      @close="closePullModal"
+      @submit="confirmPull" />
+
+    <PackModal
+      :open="showPackModal"
+      :draft-name="selectedDraft?.name"
+      :registries="registries"
+      :error="packError"
+      :loading="draftStore.packing !== null"
+      @close="closePackModal"
+      @submit="confirmPack" />
+
+    <TagModal
+      :open="showTagModal"
+      :repository="selectedModelKit?.repository ?? ''"
+      :tag="selectedModelKit?.tag ?? ''"
+      :error="tagError"
+      :loading="kitStore.tagging !== null"
+      @close="closeTagModal"
+      @submit="handleTag" />
+
+    <DeleteModelKitModal
+      :open="showDeleteConfirm"
+      :name="selectedModelKit?.name"
+      :tag="selectedModelKit?.tag || 'latest'"
+      @close="cancelDelete"
+      @confirm="confirmDelete" />
   </div>
 </template>

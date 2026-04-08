@@ -478,6 +478,7 @@ function resetTempDir() {
       busy-label="Removing..."
       :disabled="removingData"
       class="max-w-lg"
+      long-press
       @close="showConfirmRemoveDataModal = DELETE_CONFIRMATION_MODAL.CLOSED"
       @confirm="removeAppData(showConfirmRemoveDataModal === DELETE_CONFIRMATION_MODAL.REMOVE_ALL)">
       <p class="text-gray-01 text-sm mb-4">
