@@ -23,7 +23,7 @@ import IconSearch from '~icons/ri/search-line'
 
 import DeleteModelKitModal from '../components/modals/DeleteModelKitConfirm.vue'
 import PackModal from '../components/modals/PackModal.vue'
-import PruneConfirmModal from '../components/modals/PruneConfirmModal.vue'
+import PruneConfirmModal from '../components/modals/PruneConfirm.vue'
 import PullModal from '../components/modals/PullModal.vue'
 import TagModal from '../components/modals/TagModal.vue'
 import ModelKitCard from '../components/ModelKitCard.vue'

@@ -7,7 +7,7 @@ import IconDelete from '~icons/ri/delete-bin-7-line'
 import IconFile from '~icons/ri/file-line'
 
 import type { UnpackedKitfile } from '../stores/unpackedKitfileStore'
-import DeleteDraftModal from './modals/DeleteDraftModal.vue'
+import DeleteDraftModal from './modals/DeleteDraftConfirm.vue'
 
 const props = defineProps<{
   kitfile: UnpackedKitfile
