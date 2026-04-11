@@ -21,7 +21,7 @@ import IconPin from '~icons/ri/pushpin-line'
 import IconRefresh from '~icons/ri/reset-right-line'
 import IconSearch from '~icons/ri/search-line'
 
-import DeleteModelKitModal from '../components/modals/DeleteModelKitModal.vue'
+import DeleteModelKitModal from '../components/modals/DeleteModelKitConfirm.vue'
 import PackModal from '../components/modals/PackModal.vue'
 import PruneConfirmModal from '../components/modals/PruneConfirmModal.vue'
 import PullModal from '../components/modals/PullModal.vue'
