@@ -1,0 +1,20 @@
+name: Pull and inspect
+description: >
+  Pull a modelkit from a registry and inspect its metadata and layer structure.
+  A great starting point to explore what's inside any modelkit.
+
+vars:
+  ref: ""  # required — e.g. jozu.ml/myorg/my-model:latest
+
+steps:
+  - name: Pull modelkit
+    kit.pull:
+      ref: ${ref}
+
+  - name: Show metadata
+    kit.info:
+      ref: ${ref}
+
+  - name: Inspect layers
+    kit.inspect:
+      ref: ${ref}

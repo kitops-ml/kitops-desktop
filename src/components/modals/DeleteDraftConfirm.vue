@@ -15,6 +15,7 @@ defineEmits<{ close: []; confirm: [] }>()
     title="Delete Unpacked Kitfile"
     confirm-label="Delete"
     danger
+    long-press
     @close="$emit('close')"
     @confirm="$emit('confirm')">
     <p class="text-gray-01 mb-6">

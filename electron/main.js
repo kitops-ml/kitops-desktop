@@ -3,13 +3,13 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, safeStorage, shell } from 'e
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { getDefaultKitopsHome } from './ipc/cli-setup.js'
 import * as cliSetup from './ipc/cli-setup.js'
 import * as credentials from './ipc/credentials.js'
 import * as env from './ipc/env.js'
 import * as filesystem from './ipc/filesystem.js'
 import * as kitCommands from './ipc/kit-commands.js'
 import * as kitfiles from './ipc/kitfiles.js'
+import * as kitflow from './ipc/kitflow.js'
 import * as modelkitLogs from './ipc/modelkit-logs.js'
 import { setMainWindow } from './logging.js'
 
@@ -19,7 +19,7 @@ let mainWindow
 const getMainWindow = () => mainWindow
 
 if (!process.env.KITOPS_HOME) {
-  process.env.KITOPS_HOME = getDefaultKitopsHome()
+  process.env.KITOPS_HOME = cliSetup.getDefaultKitopsHome()
 }
 
 // On non-Windows platforms, apps launched from a GUI (Dock/Finder/DE) have a
@@ -201,6 +201,7 @@ function buildMenu() {
 }
 
 kitCommands.register(ipcMain)
+kitflow.register(ipcMain)
 filesystem.register({ ipcMain, dialog, shell }, getMainWindow)
 kitfiles.register(ipcMain)
 modelkitLogs.register(ipcMain)
@@ -212,6 +213,7 @@ app.whenReady().then(() => {
   buildMenu()
   createWindow()
   modelkitLogs.pruneOldLogs().catch(() => { })
+  cliSetup.ensureKitflowWrapper()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

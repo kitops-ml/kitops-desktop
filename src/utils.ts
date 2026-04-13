@@ -98,6 +98,40 @@ export function toRelativePath(path: string, baseDir: string): string {
   return relative.startsWith('..') ? withTrailing : '.' + sep + withTrailing
 }
 
+// Formats a duration in milliseconds as a short human-readable string
+export function formatDuration(ms: number): string {
+  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`
+}
+
+// Returns a human-readable relative time string, e.g. "5m ago", "2h ago", "Never"
+export function relativeTime(isoString: string | null): string {
+  if (!isoString) {
+    return 'Never'
+  }
+  const diff = Date.now() - new Date(isoString).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) {
+    return 'Just now'
+  }
+  if (mins < 60) {
+    return `${mins}m ago`
+  }
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) {
+    return `${hrs}h ago`
+  }
+  const days = Math.floor(hrs / 24)
+  if (days < 7) {
+    return `${days}d ago`
+  }
+  return `${Math.floor(days / 7)}w ago`
+}
+
+// Convert dash-case to camelCase, e.g. "tls-verify" → "tlsVerify"
+export function toCamelCase(key: string): string {
+  return key.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
+}
+
 // Cleans up IPC and kitops-ts error messages by removing boilerplate, version notices, and noise
 // Returns a short, user-friendly error message
 export function cleanIpcError(message: string): string {

@@ -58,6 +58,8 @@ async function fetchReadme() {
   try {
     const unpackDir = await unpackRepository(props.repository, props.tag, 'docs')
 
+    const readmeNames = ['README.md', 'readme.md', 'Readme.md', 'README', 'readme', 'README.txt', 'readme.txt']
+
     for (const doc of props.docs) {
       const docPath = doc.path.replace(/^\.\//, '')
       if (docPath.toLowerCase().includes('readme')) {
@@ -67,9 +69,18 @@ async function fetchReadme() {
           return
         }
       }
+      // If the doc entry points to a directory, search for README inside it
+      if (docPath.endsWith('/')) {
+        for (const name of readmeNames) {
+          const found = await tryReadFile(window.kitops.fs.pathJoin(unpackDir, docPath, name))
+          if (found) {
+            content.value = found
+            return
+          }
+        }
+      }
     }
 
-    const readmeNames = ['README.md', 'readme.md', 'Readme.md', 'README', 'readme', 'README.txt', 'readme.txt']
     for (const name of readmeNames) {
       const found = await tryReadFile(window.kitops.fs.pathJoin(unpackDir, name))
       if (found) {

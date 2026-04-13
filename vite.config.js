@@ -44,13 +44,17 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
+  envPrefix: 'APP_',
   base: command === 'build' ? './' : '/',
   server: {
     port: 5173
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/__tests__/**/*.spec.ts'],
+    environmentMatchGlobs: [
+      ['bin/**', 'node'],
+    ],
+    include: ['src/**/__tests__/**/*.spec.ts', 'bin/**/*.test.js'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,js}'],

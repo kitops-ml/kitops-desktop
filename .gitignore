@@ -44,6 +44,9 @@ Thumbs.db
 # Electron
 out/
 
+# Generated kitflow bundle (produced by scripts/bundle-kitflow.mjs)
+bin/kitflow.bundle.cjs
+
 # Vite cache
 .vite/
 

@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import { app } from 'electron'
 import { createWriteStream } from 'fs'
 import fs from 'fs/promises'
 import http from 'http'
@@ -93,6 +94,48 @@ function spawnAsync(cmd, args, options = {}) {
     child.on('error', reject)
     child.on('close', (code) => code === 0 ? resolve() : reject(new Error(`${cmd} failed with code ${code}`)))
   })
+}
+
+/**
+ * Writes a platform-appropriate wrapper script for the kitflow CLI into the
+ * same directory as the kit binary (userData/kitops/).  That directory is
+ * already covered by the PATH snippet the app generates, so once the user has
+ * done the one-time CLI setup, both `kit` and `kitflow` are available.
+ *
+ * The wrapper calls the bundled kitflow.cjs through Electron's own Node runtime
+ * (ELECTRON_RUN_AS_NODE=1), so no separate Node.js installation is required.
+ * Only runs when the app is packaged; silently skipped in development.
+ */
+export async function ensureKitflowWrapper() {
+  if (!app.isPackaged) {
+    return
+  }
+
+  const installDir = path.join(app.getPath('userData'), 'kitops')
+  const kitflowBundleSrc = path.join(process.resourcesPath, 'kitflow.cjs')
+  const kitflowBundle = path.join(installDir, 'kitflow.cjs')
+  const electronBin = process.execPath
+
+  try {
+    await fs.mkdir(installDir, { recursive: true })
+    await fs.copyFile(kitflowBundleSrc, kitflowBundle)
+
+    if (process.platform === 'win32') {
+      await fs.writeFile(
+        path.join(installDir, 'kitflow.cmd'),
+        `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${electronBin}" "${kitflowBundle}" %*\r\n`,
+      )
+    } else {
+      const wrapperPath = path.join(installDir, 'kitflow')
+      await fs.writeFile(
+        wrapperPath,
+        `#!/bin/sh\nexec env ELECTRON_RUN_AS_NODE=1 "${electronBin}" "${kitflowBundle}" "$@"\n`,
+      )
+      await fs.chmod(wrapperPath, 0o755)
+    }
+  } catch (e) {
+    console.error('Failed to write kitflow wrapper:', e.message)
+  }
 }
 
 export function register({ app, ipcMain }) {

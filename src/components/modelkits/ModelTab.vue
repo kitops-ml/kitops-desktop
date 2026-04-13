@@ -35,6 +35,7 @@ function toYaml(parameters: Record<string, unknown>): string {
         <div class="flex-1 min-w-0 flex flex-col gap-1">
           <span class="text-sm text-off-white font-medium break-all font-mono">{{ model.path }}</span>
           <span v-if="model.name" class="text-sm text-gray-01 font-semibold">{{ model.name }}</span>
+          <span v-if="model.description" class="text-xs text-gray-02 leading-snug">{{ model.description }}</span>
           <div class="flex flex-wrap gap-2 mt-1">
             <span v-if="model.framework" class="py-0.5 px-2 bg-elevation-04 text-xs text-gray-01">{{ model.framework }}</span>
             <span v-if="model.license" class="py-0.5 px-2 bg-elevation-04 text-xs text-gray-01">{{ model.license }}</span>

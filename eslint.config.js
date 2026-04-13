@@ -89,7 +89,7 @@ export default [
   },
 
   {
-    files: ['electron/**/*.{js,cjs}'],
+    files: ['electron/**/*.{js,cjs}', 'bin/**/*.{js,cjs}', 'scripts/**/*.{js,mjs,cjs}'],
     languageOptions: {
       globals: globals.node,
     },

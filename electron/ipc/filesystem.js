@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 
 export function register({ ipcMain, dialog, shell }, getMainWindow) {
-  ipcMain.handle('kit:readFile', async (e, filePath) => {
+  ipcMain.handle('fs:readFile', async (e, filePath) => {
     try {
       const content = await fs.readFile(filePath, 'utf-8')
       return { success: true, content }
@@ -12,7 +12,7 @@ export function register({ ipcMain, dialog, shell }, getMainWindow) {
     }
   })
 
-  ipcMain.handle('kit:writeFile', async (e, filePath, content) => {
+  ipcMain.handle('fs:writeFile', async (e, filePath, content) => {
     try {
       await fs.writeFile(filePath, content, 'utf-8')
       return { success: true }
@@ -21,7 +21,7 @@ export function register({ ipcMain, dialog, shell }, getMainWindow) {
     }
   })
 
-  ipcMain.handle('kit:fileExists', async (e, filePath) => {
+  ipcMain.handle('fs:fileExists', async (e, filePath) => {
     try {
       await fs.access(filePath)
       return true
@@ -30,9 +30,9 @@ export function register({ ipcMain, dialog, shell }, getMainWindow) {
     }
   })
 
-  ipcMain.handle('kit:getTempDir', (e, subfolder) => path.join(os.tmpdir(), subfolder || 'kitops-desktop'))
+  ipcMain.handle('fs:getTempDir', (e, subfolder) => path.join(os.tmpdir(), subfolder || 'kitops-desktop'))
 
-  ipcMain.handle('kit:listDir', async (e, dirPath) => {
+  ipcMain.handle('fs:listDir', async (e, dirPath) => {
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true })
       return {
@@ -102,9 +102,44 @@ export function register({ ipcMain, dialog, shell }, getMainWindow) {
     await shell.openExternal(url)
   })
 
-  ipcMain.handle('kit:deleteDir', async (e, dirPath) => {
+  ipcMain.handle('fs:deleteDir', async (e, dirPath) => {
     try {
       await fs.rm(dirPath, { recursive: true, force: true })
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('fs:mkdir', async (e, dirPath) => {
+    try {
+      await fs.mkdir(dirPath, { recursive: true })
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('fs:copyPath', async (e, src, dest) => {
+    try {
+      await fs.mkdir(path.dirname(dest), { recursive: true })
+      await fs.cp(src, dest, { recursive: true, force: true })
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('fs:movePath', async (e, src, dest) => {
+    try {
+      await fs.mkdir(path.dirname(dest), { recursive: true })
+      try {
+        await fs.rename(src, dest)
+      } catch {
+        // rename fails across filesystems — fall back to copy + delete
+        await fs.cp(src, dest, { recursive: true, force: true })
+        await fs.rm(src, { recursive: true, force: true })
+      }
       return { success: true }
     } catch (error) {
       return { success: false, error: error.message }

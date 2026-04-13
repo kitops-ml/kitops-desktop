@@ -3,11 +3,13 @@ import { numberToSize } from '@/utils'
 import IconAdd from '~icons/ri/add-line'
 import IconArrowUp from '~icons/ri/arrow-up-circle-line'
 import IconModelKit from '~icons/ri/box-2-line'
+import IconFlow from '~icons/ri/git-merge-line'
 import IconCog from '~icons/ri/settings-line'
 
 import { useKitStore } from '../stores/kitStore'
 
 const kitStore = useKitStore()
+const showKitFlow = import.meta.env.APP_FEATURE_KITFLOW === 'true'
 </script>
 
 <template>
@@ -55,6 +57,11 @@ const kitStore = useKitStore()
       <RouterLink :to="{ name: 'new-kitfile' }" class="nav-item" active-class="active">
         <IconAdd class="size-5" />
         <span>New Kitfile</span>
+      </RouterLink>
+
+      <RouterLink v-if="showKitFlow" :to="{ name: 'kitflow' }" class="nav-item" active-class="active">
+        <IconFlow class="size-5" />
+        <span>KitFlow</span>
       </RouterLink>
 
       <RouterLink :to="{ name: 'settings' }" class="nav-item" active-class="active">

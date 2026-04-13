@@ -5,6 +5,7 @@ import DiskUsageView from '../views/DiskUsageView.vue'
 import HomeView from '../views/HomeView.vue'
 import InitFromDirectoryView from '../views/InitFromDirectoryView.vue'
 import KitfileEditorView from '../views/KitfileEditorView.vue'
+import KitFlowView from '../views/KitFlowView.vue'
 import LogsView from '../views/LogsView.vue'
 import ModelKitDetailView from '../views/ModelKitDetailView.vue'
 import NewKitfileView from '../views/NewKitfileView.vue'
@@ -32,7 +33,7 @@ const routes = [
     component: KitfileEditorView,
   },
   {
-    path: '/modelkit/:repository/:tag',
+    path: '/modelkits/:repository/:tag',
     name: 'modelkit-detail',
     component: ModelKitDetailView,
   },
@@ -41,6 +42,11 @@ const routes = [
     name: 'compare',
     component: CompareView,
   },
+  ...(import.meta.env.APP_FEATURE_KITFLOW === 'true' ? [{
+    path: '/kitflow',
+    name: 'kitflow',
+    component: KitFlowView,
+  }] : []),
   {
     path: '/settings',
     name: 'settings',

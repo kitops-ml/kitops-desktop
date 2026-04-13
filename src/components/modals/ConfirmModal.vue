@@ -15,7 +15,7 @@ const props = withDefaults(
     danger?: boolean
     disabled?: boolean
     maxWidth?: string,
-    longPress?: boolean // when true, the confirm button becomes a long-press type
+    longPress?: boolean | number
   }>(),
   {
     busy: false,
@@ -29,14 +29,17 @@ const props = withDefaults(
 
 const emit = defineEmits<{ close: []; confirm: [] }>()
 
-const LONGPRESS_DURATION = 2000
+const DEFAULT_LONGPRESS_DURATION = 2000
+const LONGPRESS_DURATION = typeof props.longPress === 'number' && props.longPress > 0
+  ? props.longPress
+  : DEFAULT_LONGPRESS_DURATION
 
 const isBusy = ref<boolean>(false)
 
 const isPressing = ref<boolean>(false)
 
 useEventListener(document, 'mouseup', () => {
-  isPressing.value = false
+  isPressing.value = isBusy.value
 })
 
 onLongPress(
@@ -101,6 +104,7 @@ watchEffect(() => {
           class="bg-red-950/40 w-0 absolute left-0 inset-y-0 pointer-events-none"
           :class="{
             'transition-[width] ease-linear w-full': isPressing,
+            'transition-none w-0': !isPressing,
             'opacity-0': !props.longPress
           }"
           :style="`transition-duration: ${LONGPRESS_DURATION}ms`"></div>

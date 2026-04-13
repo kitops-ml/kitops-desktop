@@ -1,0 +1,22 @@
+name: Pack and push
+description: >
+  Packs a local Kitfile directory into a modelkit and pushes it to a registry.
+  Use this after editing a Kitfile locally to publish a new version.
+
+vars:
+  source_dir: "."  # path to directory containing your Kitfile
+  ref: ""          # required — e.g. jozu.ml/myorg/my-model:v1.0
+
+steps:
+  - name: Pack modelkit
+    kit.pack:
+      args: ${source_dir}
+      tag: ${ref}
+
+  - name: Inspect before pushing
+    kit.info:
+      args: ${ref}
+
+  - name: Push to registry
+    kit.push:
+      args: ${ref}

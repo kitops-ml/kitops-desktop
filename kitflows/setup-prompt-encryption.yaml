@@ -1,0 +1,81 @@
+name: setup-prompt-encryption
+description: >
+  Adds encryption tooling to a modelkit that contains sensitive prompts.
+  Unpacks the artifact, writes a SOPS configuration and encrypt/decrypt helper
+  scripts into the package, then repacks and pushes.
+  Anyone who pulls this modelkit can run encrypt-prompts.sh to protect the
+  prompt files with age or GPG before sharing the artifact further.
+
+vars:
+  source_ref: ""          # required — e.g. jozu.ml/internal/my-model:v2.0
+  output_ref: ""          # required — e.g. jozu.ml/internal/my-model:v2.0 (can overwrite in-place)
+  age_public_key: ""      # required — recipient age public key, e.g. age1ql3z7...
+  prompts_dir: prompts    # directory inside the modelkit where prompt files live
+
+steps:
+
+  - name: Pull source modelkit
+    kit.pull:
+      args: ${source_ref}
+
+  - name: Unpack full artifact
+    kit.unpack:
+      args: ${source_ref}
+      dir: ./workspace
+
+  # Write a .sops.yaml that tells SOPS which files to encrypt and with which key.
+  # SOPS supports age, GPG, AWS KMS, GCP KMS, and Azure Key Vault — swap out
+  # the `age:` line for whichever backend your team uses.
+  - name: Write SOPS configuration
+    write:
+      path: ./workspace/.sops.yaml
+      content: |
+        creation_rules:
+          - path_regex: ^${prompts_dir}/.*$
+            age: ${age_public_key}
+
+  # Write a helper script so anyone who pulls the modelkit can encrypt prompts.
+  # The script uses SOPS in-place encryption — the original files are replaced
+  # with their encrypted counterparts, which SOPS can later decrypt.
+  - name: Write encrypt helper script
+    write:
+      path: ./workspace/encrypt-prompts.sh
+      content: |
+        #!/usr/bin/env sh
+        # Encrypt all prompt files using SOPS + age.
+        # Requires: sops (https://github.com/getsops/sops) and age.
+        set -e
+        for f in ${prompts_dir}/*.md ${prompts_dir}/*.txt ${prompts_dir}/*.yaml; do
+          [ -f "$f" ] || continue
+          sops --encrypt --in-place "$f"
+          echo "Encrypted: $f"
+        done
+
+  # Write a matching decrypt helper for authorized recipients who hold the
+  # corresponding age private key (set via SOPS_AGE_KEY_FILE or SOPS_AGE_KEY).
+  - name: Write decrypt helper script
+    write:
+      path: ./workspace/decrypt-prompts.sh
+      content: |
+        #!/usr/bin/env sh
+        # Decrypt all prompt files using SOPS + age.
+        # Requires your age private key in SOPS_AGE_KEY_FILE or SOPS_AGE_KEY.
+        set -e
+        for f in ${prompts_dir}/*.md ${prompts_dir}/*.txt ${prompts_dir}/*.yaml; do
+          [ -f "$f" ] || continue
+          sops --decrypt --in-place "$f"
+          echo "Decrypted: $f"
+        done
+
+  - name: Pack with encryption tooling
+    kit.pack:
+      args: ./workspace
+      tag: ${output_ref}
+
+  - name: Inspect result
+    kit.info:
+      args: ${output_ref}
+
+  - name: Push
+    kit.push:
+      args: ${output_ref}

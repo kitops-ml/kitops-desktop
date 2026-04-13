@@ -21,9 +21,9 @@ import IconPin from '~icons/ri/pushpin-line'
 import IconRefresh from '~icons/ri/reset-right-line'
 import IconSearch from '~icons/ri/search-line'
 
-import DeleteModelKitModal from '../components/modals/DeleteModelKitConfirm.vue'
+import DeleteModelKitConfirm from '../components/modals/DeleteModelKitConfirm.vue'
 import PackModal from '../components/modals/PackModal.vue'
-import PruneConfirmModal from '../components/modals/PruneConfirm.vue'
+import PruneConfirm from '../components/modals/PruneConfirm.vue'
 import PullModal from '../components/modals/PullModal.vue'
 import TagModal from '../components/modals/TagModal.vue'
 import ModelKitCard from '../components/ModelKitCard.vue'
@@ -148,7 +148,7 @@ function createNew() {
 }
 
 function viewDetails(kit: ModelKit) {
-  router.push(`/modelkit/${encodeURIComponent(kit.repository)}/${encodeURIComponent(kit.tag)}`)
+  router.push(`/modelkits/${encodeURIComponent(kit.repository)}/${encodeURIComponent(kit.tag)}`)
 }
 
 function openPackModal(event: Event, draft: UnpackedKitfile) {
@@ -561,8 +561,9 @@ function changeViewMode(mode: Settings['homeViewTab']) {
       </div>
     </div>
 
-    <PruneConfirmModal
+    <PruneConfirm
       :open="showPruneConfirm"
+      :long-press="500"
       @close="showPruneConfirm = false"
       @confirm="confirmPrune" />
 
@@ -591,10 +592,11 @@ function changeViewMode(mode: Settings['homeViewTab']) {
       @close="closeTagModal"
       @submit="handleTag" />
 
-    <DeleteModelKitModal
+    <DeleteModelKitConfirm
       :open="showDeleteConfirm"
       :name="selectedModelKit?.name"
       :tag="selectedModelKit?.tag || 'latest'"
+      :long-press="500"
       @close="cancelDelete"
       @confirm="confirmDelete" />
   </div>

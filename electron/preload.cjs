@@ -31,6 +31,20 @@ window.kitops = {
     getCliPath: () => ipcRenderer.invoke('kit:getCliPath'),
     isAppInstalled: () => ipcRenderer.invoke('kit:isAppInstalled'),
 
+    // Generic streaming runner — passes a full CLI args array directly (used by pull, push, etc.).
+    run: (args) => ipcRenderer.invoke('kit:run', args),
+
+    // Streaming progress for long-running operations (pull, push).
+    // Register before starting the operation; remove after it resolves/rejects.
+    onProgress: (callback) => {
+      ipcRenderer.on('kit:progress', (_event, line) => callback(line))
+    },
+    removeProgressListener: () => {
+      ipcRenderer.removeAllListeners('kit:progress')
+    },
+    // Kills the currently-running streaming operation (pull or push).
+    cancelOperation: () => ipcRenderer.invoke('kit:stop'),
+
   },
 
   credentials: {
@@ -51,12 +65,15 @@ window.kitops = {
   },
 
   fs: {
-    readFile: (filePath) => ipcRenderer.invoke('kit:readFile', filePath),
-    writeFile: (filePath, content) => ipcRenderer.invoke('kit:writeFile', filePath, content),
-    fileExists: (filePath) => ipcRenderer.invoke('kit:fileExists', filePath),
-    getTempDir: (subfolder) => ipcRenderer.invoke('kit:getTempDir', subfolder),
-    listDir: (dirPath) => ipcRenderer.invoke('kit:listDir', dirPath),
-    deleteDir: (dirPath) => ipcRenderer.invoke('kit:deleteDir', dirPath),
+    readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
+    writeFile: (filePath, content) => ipcRenderer.invoke('fs:writeFile', filePath, content),
+    fileExists: (filePath) => ipcRenderer.invoke('fs:fileExists', filePath),
+    getTempDir: (subfolder) => ipcRenderer.invoke('fs:getTempDir', subfolder),
+    listDir: (dirPath) => ipcRenderer.invoke('fs:listDir', dirPath),
+    deleteDir: (dirPath) => ipcRenderer.invoke('fs:deleteDir', dirPath),
+    mkdir: (dirPath) => ipcRenderer.invoke('fs:mkdir', dirPath),
+    copyPath: (src, dest) => ipcRenderer.invoke('fs:copyPath', src, dest),
+    movePath: (src, dest) => ipcRenderer.invoke('fs:movePath', src, dest),
 
     // We might be tempted to expose the entire 'path' module, but that would be a security risk; just expose the things we need
     pathJoin: (...args) => path.join(...args),
@@ -91,6 +108,15 @@ window.kitops = {
       ipcRenderer.removeAllListeners('menu:action')
     },
     removeData: (options) => ipcRenderer.invoke('app:removeData', options),
+  },
+
+  kitflow: {
+    // Spawns the kitflow binary with pre-supplied vars and streams JSON events
+    // back to the renderer via onEvent. Resolves when the flow finishes.
+    run: (filePath, vars) => ipcRenderer.invoke('kitflow:run', filePath, vars),
+    cancel: () => ipcRenderer.invoke('kitflow:cancel'),
+    onEvent: (callback) => ipcRenderer.on('kitflow:event', (_e, event) => callback(event)),
+    removeEventListener: () => ipcRenderer.removeAllListeners('kitflow:event'),
   },
 
   env: {
