@@ -66,6 +66,7 @@ export default [
         singleline: 'never',
         multiline: 'never',
       }],
+      'no-console': 'off',
       'vue/html-self-closing': 'off',
       'vue/max-len': ['warn',
         {
@@ -76,6 +77,7 @@ export default [
           comments: 200,
         },
       ],
+      'vue/no-v-html': 'off'
     },
   },
 

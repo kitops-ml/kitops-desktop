@@ -4,8 +4,8 @@
  * always reflects the installed version of kitops-ts without any manual upkeep.
  */
 
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'fs'
-import { resolve, dirname } from 'path'
+import { mkdirSync,readdirSync, readFileSync, writeFileSync } from 'fs'
+import { dirname,resolve } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -20,16 +20,20 @@ function splitParams(paramsStr) {
   let depth = 0
   let current = ''
   for (const char of paramsStr) {
-    if (char === '<') depth++
-    else if (char === '>') depth--
-    else if (char === ',' && depth === 0) {
+    if (char === '<') {
+      depth++
+    } else if (char === '>') {
+      depth--
+    } else if (char === ',' && depth === 0) {
       parts.push(current.trim())
       current = ''
       continue
     }
     current += char
   }
-  if (current.trim()) parts.push(current.trim())
+  if (current.trim()) {
+    parts.push(current.trim())
+  }
   return parts
 }
 
@@ -37,14 +41,20 @@ function splitParams(paramsStr) {
 function parseParam(raw) {
   // Matches: name?: Type  or  name: Type
   const m = /^(\w+)(\?)?\s*:\s*(.+)$/.exec(raw.trim())
-  if (!m) return null
+  if (!m) {
+    return null
+  }
   return { name: m[1], optional: Boolean(m[2]), type: m[3].trim() }
 }
 
 /** Collapse a TypeScript type to a simple JSON-friendly primitive. */
 function collapseType(t) {
-  if (t === 'boolean') return 'boolean'
-  if (t === 'number') return 'number'
+  if (t === 'boolean') {
+    return 'boolean'
+  }
+  if (t === 'number') {
+    return 'number'
+  }
   // String literal unions like 'table' | 'json' → 'string'
   return 'string'
 }
@@ -110,7 +120,9 @@ for (const file of dtsFiles) {
 
     // Only include commands that appear in the KitCommand union (the public CLI surface).
     // loginUnsafe, removeAll, etc. are excluded this way.
-    if (!validCommands.has(funcName)) continue
+    if (!validCommands.has(funcName)) {
+      continue
+    }
 
     const params = splitParams(funcMatch[2]).map(parseParam).filter(Boolean)
 
