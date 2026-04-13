@@ -33,7 +33,7 @@
     "@vueuse/core": "^14.2.1",
     "diff": "^8.0.4",
     "@kitops/kitops-ts": "^0.0.4",
-    "marked": "^17.0.1",
+    "marked": "^18.0.0",
     "pinia": "^3.0.4",
     "shiki": "^4.0.2",
     "tailwindcss": "^4.1.18",
