@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useKitFlow } from '@/composables/useKitFlow'
-import type { KitFlowExample } from '@/constants/kitflow-examples'
-import { KITFLOW_EXAMPLES } from '@/constants/kitflow-examples'
+import type { KitFlowExample } from '@/constants/kitflow'
+import { KITFLOW_EXAMPLES } from '@/constants/kitflow'
 import { relativeTime } from '@/utils'
 import IconFile from '~icons/ri/file-text-line'
 import IconFlow from '~icons/ri/git-merge-line'

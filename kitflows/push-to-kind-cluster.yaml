@@ -1,0 +1,36 @@
+name: Push ModelKit to the Kind Cluster Registry
+description: >
+  Pull, tag and push a given ModelKit reference to `registry.kind.cluster`
+  in the test-user account
+
+vars:
+  source_ref: '' # required - repository to pull, eg. jozu.ml/account/repo:tag
+
+steps:
+
+  - name: Pull the source
+    kit.pull:
+      ref: ${source_ref}
+
+  - name: Tag for kind cluster
+    kit.tag:
+      ref:
+        - ${source_ref}
+        - registry.kind.cluster/test-user/${source_ref | strip-tag | after '/'}:${source_ref | tag}
+
+  - name: Login to registry.kind.cluster
+    kit.login:
+      ref: registry.kind.cluster
+      username: test-user
+      password: test
+      tls-verify: false
+
+  - name: Push to registry.kind.cluster
+    kit.push:
+      ref: registry.kind.cluster/test-user/${source_ref | strip-tag | after '/'}:${source_ref | tag}
+      tls-verify: false
+
+  - name: Delete the source from the local store
+    kit.remove:
+      ref: ${source_ref}
+      force: true

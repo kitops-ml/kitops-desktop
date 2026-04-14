@@ -9,7 +9,6 @@ import IconCog from '~icons/ri/settings-line'
 import { useKitStore } from '../stores/kitStore'
 
 const kitStore = useKitStore()
-const showKitFlow = import.meta.env.APP_FEATURE_KITFLOW === 'true'
 </script>
 
 <template>
@@ -59,7 +58,7 @@ const showKitFlow = import.meta.env.APP_FEATURE_KITFLOW === 'true'
         <span>New Kitfile</span>
       </RouterLink>
 
-      <RouterLink v-if="showKitFlow" :to="{ name: 'kitflow' }" class="nav-item" active-class="active">
+      <RouterLink :to="{ name: 'kitflow' }" class="nav-item" active-class="active">
         <IconFlow class="size-5" />
         <span>KitFlow</span>
       </RouterLink>

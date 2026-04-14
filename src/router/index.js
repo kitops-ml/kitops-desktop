@@ -42,11 +42,11 @@ const routes = [
     name: 'compare',
     component: CompareView,
   },
-  ...(import.meta.env.APP_FEATURE_KITFLOW === 'true' ? [{
+  {
     path: '/kitflow',
     name: 'kitflow',
     component: KitFlowView,
-  }] : []),
+  },
   {
     path: '/settings',
     name: 'settings',
