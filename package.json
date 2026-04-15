@@ -92,6 +92,12 @@
     "extraResources": [
       { "from": "bin/kitflow.bundle.cjs", "to": "kitflow.cjs" }
     ],
+    "protocols": [
+      {
+        "name": "KitOps",
+        "schemes": ["kitops"]
+      }
+    ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.icns",

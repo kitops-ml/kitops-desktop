@@ -158,7 +158,7 @@ export function interpolate(value: string, vars: Record<string, string>): string
   })
 }
 
-const KNOWN_FILESYSTEM_COMMANDS = new Set(['mkdir', 'write', 'copy', 'move', 'read'])
+const KNOWN_FILESYSTEM_COMMANDS = new Set(['mkdir', 'write', 'copy', 'move', 'read', 'echo', 'run'])
 
 function detectCommand(step: RawStep): string | null {
   for (const key of Object.keys(step)) {

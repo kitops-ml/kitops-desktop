@@ -107,6 +107,12 @@ window.kitops = {
     removeMenuActionListener: () => {
       ipcRenderer.removeAllListeners('menu:action')
     },
+    onProtocolUrl: (callback) => {
+      ipcRenderer.on('app:protocol-url', (_event, url) => callback(url))
+    },
+    removeProtocolUrlListener: () => {
+      ipcRenderer.removeAllListeners('app:protocol-url')
+    },
     removeData: (options) => ipcRenderer.invoke('app:removeData', options),
   },
 

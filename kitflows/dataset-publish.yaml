@@ -1,0 +1,61 @@
+name: Publish dataset
+description: >
+  Packs a local dataset directory into a standalone versioned modelkit and
+  publishes it to a registry. Use this to share curated datasets with your
+  team in a reproducible, version-controlled way — the same dataset version
+  can then be referenced by fine-tuning or evaluation workflows.
+  Optionally runs a validation script first to confirm the dataset is
+  well-formed before it gets committed to the registry.
+
+vars:
+  dataset_dir: "./data"       # directory containing your dataset files
+  ref: ""                     # required — e.g. jozu.ml/myorg/train-data:v1.0
+  description: "Curated dataset."
+  validate_script: ""         # optional — script that validates the dataset
+                              #            e.g. python validate_dataset.py --data ./data
+
+steps:
+
+  # ── 1. Validate dataset (optional) ───────────────────────────────────────
+  # Point validate_script at a script that checks schema, completeness, or
+  # class balance before publishing. The flow stops here on non-zero exit so
+  # malformed datasets never reach the registry.
+
+  - name: Validate dataset
+    when: ${validate_script}
+    run:
+      command: ${validate_script}
+      dir: ${dataset_dir}
+
+  # ── 2. Initialize a Kitfile ───────────────────────────────────────────────
+  # kit init generates a Kitfile that classifies files as datasets.
+  # Edit the generated Kitfile if you need to adjust layer paths or metadata
+  # (e.g. add a description, authorship, or split annotations).
+
+  - name: Initialize Kitfile
+    kit.init:
+      args: ${dataset_dir}
+      desc: ${description}
+
+  # ── 3. Pack the dataset ───────────────────────────────────────────────────
+
+  - name: Pack dataset
+    kit.pack:
+      args: ${dataset_dir}
+      tag: ${ref}
+
+  # ── 4. Inspect ────────────────────────────────────────────────────────────
+
+  - name: Show dataset metadata
+    kit.info:
+      args: ${ref}
+
+  - name: List layers
+    kit.inspect:
+      args: ${ref}
+
+  # ── 5. Push to registry ───────────────────────────────────────────────────
+
+  - name: Push dataset
+    kit.push:
+      args: ${ref}

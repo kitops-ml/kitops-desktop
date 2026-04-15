@@ -1,0 +1,75 @@
+name: Validate and promote
+description: >
+  Validates a model candidate before promoting it to production.
+  Pulls the release candidate, inspects it, diffs it against the current
+  production version to confirm the delta is expected, then retags and
+  pushes to the production registry.
+  Designed for MLOps engineers running a CI/CD promotion gate — pass
+  credentials via --prod_username and --prod_password rather than
+  hard-coding them in this file.
+
+vars:
+  candidate_ref: ""         # required — e.g. registry.staging/myorg/my-model:rc-47
+  current_prod_ref: ""      # required — e.g. jozu.ml/myorg/my-model:latest
+  prod_ref: ""              # required — e.g. jozu.ml/myorg/my-model:v2.0
+  prod_registry: ""         # required — e.g. jozu.ml
+  prod_username: ""         # required — pass via --prod_username=$REGISTRY_USER in CI
+  prod_password: ""         # required — pass via --prod_password=$REGISTRY_PASS in CI
+  remove_candidate: "true"
+
+steps:
+
+  # ── 1. Authenticate ───────────────────────────────────────────────────────
+  # Credentials are supplied via variables — never hard-code them in the file.
+
+  - name: Login to production registry
+    kit.login:
+      args: ${prod_registry}
+      username: ${prod_username}
+      password: ${prod_password}
+
+  # ── 2. Pull both versions ─────────────────────────────────────────────────
+
+  - name: Pull promotion candidate
+    kit.pull:
+      args: ${candidate_ref}
+
+  - name: Pull current production modelkit
+    kit.pull:
+      args: ${current_prod_ref}
+
+  # ── 3. Inspect candidate ──────────────────────────────────────────────────
+
+  - name: Inspect candidate
+    kit.info:
+      args: ${candidate_ref}
+
+  # ── 4. Diff against production ────────────────────────────────────────────
+  # kit diff exits non-zero when layers diverge unexpectedly — the flow stops
+  # here if the candidate introduces unreviewed structural changes, preventing
+  # an accidental promotion.
+
+  - name: Diff candidate against current production
+    kit.diff:
+      args:
+        - ${current_prod_ref}
+        - ${candidate_ref}
+
+  # ── 5. Promote ────────────────────────────────────────────────────────────
+
+  - name: Tag for production
+    kit.tag:
+      args:
+        - ${candidate_ref}
+        - ${prod_ref}
+
+  - name: Push to production registry
+    kit.push:
+      args: ${prod_ref}
+
+  # ── 6. Cleanup ────────────────────────────────────────────────────────────
+
+  - name: Remove candidate copy
+    when: ${remove_candidate}
+    kit.remove:
+      args: ${candidate_ref}

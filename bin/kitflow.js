@@ -12,7 +12,8 @@
  */
 
 import * as kitops from '@kitops/kitops-ts'
-import { cp, mkdir, readFile, rename, rm,writeFile } from 'fs/promises'
+import { spawn } from 'child_process'
+import { cp, mkdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { dirname, isAbsolute, join, resolve, sep } from 'path'
 import { createInterface } from 'readline'
 import { fileURLToPath } from 'url'
@@ -38,7 +39,7 @@ const ansi = {
 
 const isTTY = process.stdout.isTTY
 function c(code, text) {
-  return isTTY ? `${code}${text}${ansi.reset}` : text 
+  return isTTY ? `${code}${text}${ansi.reset}` : text
 }
 
 // ── Filters & interpolation ───────────────────────────────────────────────────
@@ -116,9 +117,9 @@ function resolvePath(relativePath, root) {
 
 function tryResolvePath(val, root) {
   try {
-    return resolvePath(val, root) 
+    return resolvePath(val, root)
   } catch {
-    return val 
+    return val
   }
 }
 
@@ -133,7 +134,7 @@ function getNestedValue(obj, dotPath) {
 
 // ── Flow parsing ──────────────────────────────────────────────────────────────
 
-const KNOWN_FILESYSTEM_COMMANDS = new Set(['mkdir', 'write', 'copy', 'move', 'read', 'echo'])
+const KNOWN_FILESYSTEM_COMMANDS = new Set(['mkdir', 'write', 'copy', 'move', 'read', 'echo', 'run'])
 
 function detectCommand(step) {
   for (const key of Object.keys(step)) {
@@ -297,9 +298,9 @@ async function executeStep(command, params, vars, root, onProgress) {
             const absPath = resolvePath(src, root)
             let content
             try {
-              content = await readFile(absPath, 'utf-8') 
+              content = await readFile(absPath, 'utf-8')
             } catch {
-              continue 
+              continue
             }
             const parsed = format === 'json' ? JSON.parse(content) : parseYaml(content)
             const value = getNestedValue(parsed, fieldPath)
@@ -334,6 +335,43 @@ async function executeStep(command, params, vars, root, onProgress) {
 
     case 'echo': {
       return p
+    }
+
+    case 'run': {
+      // Params can be a plain string (shorthand) or an object { command, dir }.
+      const cmd = typeof p === 'string' ? p : p.command
+      if (!cmd || typeof cmd !== 'string' || !cmd.trim()) {
+        throw new Error('run: command must be a non-empty string')
+      }
+      // Resolve dir to prevent path traversal — defaults to the workspace root.
+      const cwd = p.dir ? resolvePath(p.dir, root) : root
+      return new Promise((resolve, reject) => {
+        // shell: true is intentional — `run` is a developer-authored command,
+        // equivalent to writing a shell step in a Makefile. The command string
+        // comes from a YAML file the developer controls, not from untrusted input.
+        const child = spawn(cmd, { cwd, shell: true, stdio: 'pipe' })
+        let out = ''
+        child.stdout.on('data', chunk => {
+          const line = chunk.toString().trimEnd()
+          if (line) {
+            out += line + '\n'; onProgress?.(line) 
+          }
+        })
+        child.stderr.on('data', chunk => {
+          const line = chunk.toString().trimEnd()
+          if (line) {
+            out += line + '\n'; onProgress?.(line) 
+          }
+        })
+        child.on('error', err => reject(new Error(`Failed to start process: ${err.message}`)))
+        child.on('close', code => {
+          if (code === 0) {
+            resolve(out.trim() || 'Done')
+          } else {
+            reject(new Error(`Process exited with code ${code}`))
+          }
+        })
+      })
     }
 
     default: {

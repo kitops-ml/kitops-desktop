@@ -8,6 +8,7 @@ const props = defineProps<{
   open: boolean
   error: string | null
   loading: boolean
+  prefill?: string
 }>()
 
 const emit = defineEmits<{ close: []; submit: [reference: string] }>()
@@ -19,7 +20,7 @@ watch(
   () => props.open,
   (val) => {
     if (val) {
-      reference.value = ''
+      reference.value = props.prefill ?? ''
       nextTick(() => formRef.value?.querySelector<HTMLInputElement>('input')?.focus())
     }
   },

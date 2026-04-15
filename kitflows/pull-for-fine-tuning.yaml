@@ -1,0 +1,91 @@
+name: Pull for fine-tuning
+description: >
+  Pulls a base model and a training dataset and stages them into an isolated
+  local workspace ready for fine-tuning. Run this before starting a new
+  fine-tuning job to get a reproducible, version-pinned starting point.
+  Unpacks only the layers you need — model weights and training data — so
+  large artifacts are not pulled to disk unnecessarily.
+
+vars:
+  base_model_ref: ""       # required — e.g. jozu.ml/myorg/llm-base:v2.1
+  dataset_ref: ""          # required — e.g. jozu.ml/myorg/train-data:v1.0
+  workspace_dir: ./ft-workspace
+
+steps:
+
+  # ── 1. Pull both modelkits ─────────────────────────────────────────────────
+
+  - name: Pull base model
+    kit.pull:
+      args: ${base_model_ref}
+
+  - name: Pull training dataset
+    kit.pull:
+      args: ${dataset_ref}
+
+  # ── 2. Unpack into isolated staging directories ────────────────────────────
+  # Each modelkit unpacks to its own directory so Kitfiles do not overwrite
+  # each other and layer paths remain predictable.
+
+  - name: Unpack model weights
+    kit.unpack:
+      args: ${base_model_ref}
+      dir: ./workspace/base
+      filter:
+        - model
+
+  - name: Unpack training data
+    kit.unpack:
+      args: ${dataset_ref}
+      dir: ./workspace/dataset
+      filter:
+        - datasets
+
+  # ── 3. Read metadata from base model ─────────────────────────────────────
+  # The Kitfile is always extracted alongside the requested layers, so it is
+  # available even though we filtered to model-only above.
+
+  - name: Read base model metadata
+    read:
+      format: yaml
+      source: ./workspace/base/Kitfile
+      into:
+        base_name: package.name
+        base_version: package.version
+
+  # ── 4. Stage into final workspace ─────────────────────────────────────────
+
+  - name: Stage model weights
+    move:
+      from: ./workspace/base/model/
+      to: ${workspace_dir}/model/
+
+  - name: Stage training data
+    move:
+      from: ./workspace/dataset/data/
+      to: ${workspace_dir}/data/
+
+  # ── 5. Write workspace README ─────────────────────────────────────────────
+
+  - name: Write workspace README
+    write:
+      path: ${workspace_dir}/README.md
+      content: |
+        # Fine-Tuning Workspace
+
+        | Field         | Value                                      |
+        |---------------|--------------------------------------------|
+        | Base model    | ${base_name} (${base_version})             |
+        | Model ref     | ${base_model_ref}                          |
+        | Dataset ref   | ${dataset_ref}                             |
+
+        ## Layout
+
+        - `model/` — base model weights, ready to load
+        - `data/` — training dataset
+
+        ## Next steps
+
+        1. Edit your training config to point at `model/` and `data/`.
+        2. Run your fine-tuning script.
+        3. Use the **Experiment snapshot** kitflow to version the result.

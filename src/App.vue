@@ -3,23 +3,80 @@ import { onMounted, onUnmounted, provide, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import KitSetupDialog from './components/KitSetupDialog.vue'
+import PullModal from './components/modals/PullModal.vue'
 import NotificationContainer from './components/NotificationContainer.vue'
 import Sidebar from './components/Sidebar.vue'
+import { useNotification } from './composables/useNotification'
 import { useKitStore } from './stores/kitStore'
 import { useLogStore } from './stores/logStore'
 import { useSettingsStore } from './stores/settingsStore'
 import { useUnpackedKitfileStore } from './stores/unpackedKitfileStore'
+import { cleanIpcError } from './utils'
 
 const router = useRouter()
 const kitStore = useKitStore()
 const logStore = useLogStore()
+const notification = useNotification()
 const settingsStore = useSettingsStore()
 const draftStore = useUnpackedKitfileStore()
 
 const kitNotFound = ref(false)
 const checkingKit = ref(true)
-const pendingMenuAction = ref<string | null>(null)
-provide('menuAction', pendingMenuAction)
+
+// Pull modal — lives at app level so it can be opened from any route or deep link
+const showPullModal = ref(false)
+const pullPrefill = ref<string | undefined>(undefined)
+const pullError = ref<string | null>(null)
+const pulling = ref(false)
+
+function openPullModal(prefill?: string) {
+  pullError.value = null
+  pullPrefill.value = prefill
+  showPullModal.value = true
+}
+
+function closePullModal() {
+  showPullModal.value = false
+  pullError.value = null
+  pullPrefill.value = undefined
+}
+
+async function confirmPull(reference: string) {
+  pulling.value = true
+  pullError.value = null
+  try {
+    await kitStore.pullModelKit(reference)
+    const lastColon = reference.lastIndexOf(':')
+    const repo = reference.substring(0, lastColon)
+    const tag = reference.substring(lastColon + 1)
+    closePullModal()
+    notification.success(`Pulled ${reference} successfully`)
+    router.push({ name: 'modelkit-detail', params: { repository: repo, tag } })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to pull ModelKit'
+    pullError.value = cleanIpcError(message)
+  } finally {
+    pulling.value = false
+  }
+}
+
+// Provide to child views (e.g. HomeView's Pull button)
+provide('openPullModal', openPullModal)
+provide('pulling', pulling)
+
+function handleProtocolUrl(url: string) {
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'kitops:') {
+      return
+    }
+    // kitops://registry/org/repo:tag → registry/org/repo:tag
+    const reference = parsed.host + parsed.pathname
+    openPullModal(reference || undefined)
+  } catch {
+    // Ignore malformed URLs
+  }
+}
 
 async function handleMenuAction(action: string) {
   switch (action) {
@@ -39,10 +96,7 @@ async function handleMenuAction(action: string) {
       break
     }
     case 'modelkits:pull':
-      pendingMenuAction.value = 'pull'
-      if (router.currentRoute.value.name !== 'home') {
-        router.push({ name: 'home' })
-      }
+      openPullModal()
       break
     case 'modelkits:list':
       router.push({ name: 'home' })
@@ -90,6 +144,9 @@ onMounted(async () => {
   // Handle actions triggered from the native menu bar
   window.kitops.app.onMenuAction(handleMenuAction)
 
+  // Handle kitops:// deep links
+  window.kitops.app.onProtocolUrl(handleProtocolUrl)
+
   // Check if kit CLI is available before initializing
   try {
     const result = await window.kitops.kit.checkInstalled()
@@ -110,6 +167,7 @@ onUnmounted(() => {
     window.kitops.app.removeLogListener()
   }
   window.kitops.app.removeMenuActionListener()
+  window.kitops.app.removeProtocolUrlListener()
 })
 </script>
 
@@ -129,6 +187,14 @@ onUnmounted(() => {
     <KitSetupDialog
       v-if="kitNotFound"
       @complete="onSetupComplete" />
+
+    <PullModal
+      :open="showPullModal"
+      :error="pullError"
+      :loading="pulling"
+      :prefill="pullPrefill"
+      @close="closePullModal"
+      @submit="confirmPull" />
 
     <NotificationContainer />
   </div>

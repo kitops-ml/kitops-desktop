@@ -1,0 +1,109 @@
+name: Test prompt in Ollama
+description: >
+  Pull a modelkit that contains a GGUF model, load it into a local Ollama
+  instance, and fire a test prompt to confirm the model responds correctly.
+  Useful for smoke-testing a newly packed or promoted modelkit before
+  distributing it further — no GPU cluster required, just Ollama running locally.
+
+vars:
+  ref: ""                        # required — e.g. jozu.ml/myorg/my-model:latest
+  ollama_model_name: ""          # required — name to register in Ollama, e.g. my-model-test
+  prompt: "Hello! Introduce yourself in one sentence."
+  unpack_dir: ./ollama-test-workspace
+  system_prompt: ""              # optional — system prompt to include in the Modelfile
+  context_size: "2048"           # optional — num_ctx passed to Ollama
+
+steps:
+
+  # ── 1. Pull the modelkit ──────────────────────────────────────────────────
+
+  - name: Pull modelkit
+    kit.pull:
+      args: ${ref}
+
+  # ── 2. Unpack model weights ───────────────────────────────────────────────
+  # Extracts only the model layer (GGUF file) — skips datasets and code so
+  # large layers that Ollama doesn't need are never written to disk.
+
+  - name: Unpack model weights
+    kit.unpack:
+      args: ${ref}
+      dir: ${unpack_dir}
+      filter:
+        - model
+
+  # ── 3. Read Kitfile metadata ──────────────────────────────────────────────
+  # Grab the model name and description to embed in the Ollama Modelfile
+  # so the registered model carries the same identity as the modelkit.
+
+  - name: Read Kitfile metadata
+    read:
+      format: yaml
+      source: ${unpack_dir}/Kitfile
+      into:
+        kit_model_name: package.name
+        kit_description: package.description
+
+  # ── 4. Locate the GGUF file ───────────────────────────────────────────────
+  # Find the first .gguf file unpacked from the model layer. The path is
+  # stored in gguf_path for use in the Modelfile below.
+
+  - name: Find GGUF file
+    run:
+      command: find ${unpack_dir}/model -name "*.gguf" | head -1
+      capture: gguf_path
+
+  # ── 5. Write an Ollama Modelfile ──────────────────────────────────────────
+  # Generates a minimal Modelfile that points Ollama at the unpacked GGUF.
+  # System prompt and context size are optional — omit system_prompt to use
+  # the model's built-in defaults.
+
+  - name: Write Modelfile
+    write:
+      path: ${unpack_dir}/Modelfile
+      content: |
+        FROM ${gguf_path}
+
+        # Sourced from modelkit: ${ref}
+        # Kit model name:        ${kit_model_name}
+
+        PARAMETER num_ctx ${context_size}
+
+  - name: Append system prompt
+    when: ${system_prompt}
+    write:
+      path: ${unpack_dir}/Modelfile
+      append: true
+      content: |
+
+        SYSTEM """
+        ${system_prompt}
+        """
+
+  # ── 6. Register the model with Ollama ────────────────────────────────────
+
+  - name: Create Ollama model
+    run:
+      command: ollama create ${ollama_model_name} -f ${unpack_dir}/Modelfile
+
+  # ── 7. Fire the test prompt ───────────────────────────────────────────────
+  # Sends the prompt and streams the response to stdout. A non-zero exit
+  # code here means the model failed to respond — the flow stops and the
+  # error is reported.
+
+  - name: Run test prompt
+    run:
+      command: ollama run ${ollama_model_name} "${prompt}"
+
+  # ── 8. Clean up ───────────────────────────────────────────────────────────
+  # Removes the Ollama model registration and the unpacked workspace.
+  # Comment out these steps if you want to keep the model loaded for
+  # interactive testing after the flow finishes.
+
+  - name: Remove Ollama model
+    run:
+      command: ollama rm ${ollama_model_name}
+
+  - name: Clean up workspace
+    run:
+      command: rm -rf ${unpack_dir}

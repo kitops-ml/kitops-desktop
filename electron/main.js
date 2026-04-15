@@ -18,6 +18,45 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 let mainWindow
 const getMainWindow = () => mainWindow
 
+// Holds a protocol URL that arrived before the window was ready (cold start).
+let pendingProtocolUrl = null
+
+function sendProtocolUrl(url) {
+  const win = getMainWindow()
+  if (win && win.webContents) {
+    win.webContents.send('app:protocol-url', url)
+  } else {
+    pendingProtocolUrl = url
+  }
+}
+
+// macOS: fires for both cold-start and warm-start deep links.
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  sendProtocolUrl(url)
+})
+
+// Ensure only one instance runs; the second instance passes its args to the first.
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    // Windows / Linux: URL is a CLI argument in the second instance's argv.
+    const url = commandLine.find(arg => arg.startsWith('kitops://'))
+    if (url) {
+      sendProtocolUrl(url)
+    }
+    // Bring the existing window to focus.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore()
+      }
+      mainWindow.focus()
+    }
+  })
+}
+
 if (!process.env.KITOPS_HOME) {
   process.env.KITOPS_HOME = cliSetup.getDefaultKitopsHome()
 }
@@ -75,6 +114,13 @@ function createWindow() {
     }
 
     Menu.buildFromTemplate(menuItems).popup({ window: mainWindow })
+  })
+
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (pendingProtocolUrl) {
+      mainWindow.webContents.send('app:protocol-url', pendingProtocolUrl)
+      pendingProtocolUrl = null
+    }
   })
 
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -210,6 +256,17 @@ env.register(ipcMain)
 cliSetup.register({ app, ipcMain })
 
 app.whenReady().then(() => {
+  // Register as the default handler for kitops:// links.
+  app.setAsDefaultProtocolClient('kitops')
+
+  // Windows / Linux cold-start: URL is passed as a command-line argument.
+  if (process.platform !== 'darwin') {
+    const url = process.argv.find(arg => arg.startsWith('kitops://'))
+    if (url) {
+      pendingProtocolUrl = url
+    }
+  }
+
   buildMenu()
   createWindow()
   modelkitLogs.pruneOldLogs().catch(() => { })

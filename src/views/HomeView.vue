@@ -2,7 +2,7 @@
 import type { ModelKit } from '@kitops/kitops-ts'
 import { storeToRefs } from 'pinia'
 import type { Ref } from 'vue'
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { Settings } from '@/constants/settings'
@@ -24,7 +24,6 @@ import IconSearch from '~icons/ri/search-line'
 import DeleteModelKitConfirm from '../components/modals/DeleteModelKitConfirm.vue'
 import PackModal from '../components/modals/PackModal.vue'
 import PruneConfirm from '../components/modals/PruneConfirm.vue'
-import PullModal from '../components/modals/PullModal.vue'
 import TagModal from '../components/modals/TagModal.vue'
 import ModelKitCard from '../components/ModelKitCard.vue'
 import UnpackedKitfileCard from '../components/UnpackedKitfileCard.vue'
@@ -49,15 +48,15 @@ const { registries } = storeToRefs(kitStore)
 const { pinnedModelKits } = storeToRefs(modelkitStore)
 const { viewMode } = storeToRefs(settingsStore)
 
+const openPullModal = inject<(prefill?: string) => void>('openPullModal')!
+const pulling = inject<Ref<boolean>>('pulling')!
+
 const searchQuery = ref('')
 const sortBy = ref<SortOption>('name')
 const showDeleteConfirm = ref(false)
 const isDeleting = ref<boolean>(false)
 
 const showPruneConfirm = ref(false)
-const showPullModal = ref(false)
-const pullError = ref<string | null>(null)
-const pulling = ref(false)
 
 const showTagModal = ref(false)
 const selectedModelKit = ref<ModelKit | null>(null)
@@ -66,14 +65,6 @@ const tagError = ref<string | null>(null)
 const showPackModal = ref(false)
 const selectedDraft = ref<UnpackedKitfile | null>(null)
 const packError = ref<string | null>(null)
-
-const menuAction = inject<Ref<string | null>>('menuAction')
-watch(menuAction!, (action) => {
-  if (action === 'pull') {
-    openPullModal()
-    menuAction!.value = null
-  }
-}, { immediate: true })
 
 const filteredModelKits = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
@@ -238,37 +229,6 @@ async function confirmPrune() {
     await kitStore.pruneUntaggedModelKits()
   } catch (error) {
     notification.error('Failed to prune ModelKits', error)
-  }
-}
-
-function openPullModal() {
-  pullError.value = null
-  showPullModal.value = true
-}
-
-function closePullModal() {
-  showPullModal.value = false
-  pullError.value = null
-}
-
-async function confirmPull(reference: string) {
-  pulling.value = true
-  pullError.value = null
-
-  try {
-    await kitStore.pullModelKit(reference)
-    const lastColon = reference.lastIndexOf(':')
-    const repo = reference.substring(0, lastColon)
-    const tag = reference.substring(lastColon + 1)
-    closePullModal()
-
-    notification.success(`Pulled ${reference} successfully`)
-    router.push({ name: 'modelkit-detail', params: { repository: repo, tag } })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to pull ModelKit'
-    pullError.value = cleanIpcError(message)
-  } finally {
-    pulling.value = false
   }
 }
 
@@ -566,13 +526,6 @@ function changeViewMode(mode: Settings['homeViewTab']) {
       :long-press="500"
       @close="showPruneConfirm = false"
       @confirm="confirmPrune" />
-
-    <PullModal
-      :open="showPullModal"
-      :error="pullError"
-      :loading="pulling"
-      @close="closePullModal"
-      @submit="confirmPull" />
 
     <PackModal
       :open="showPackModal"
