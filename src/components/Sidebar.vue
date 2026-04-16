@@ -3,6 +3,7 @@ import { numberToSize } from '@/utils'
 import IconAdd from '~icons/ri/add-line'
 import IconArrowUp from '~icons/ri/arrow-up-circle-line'
 import IconModelKit from '~icons/ri/box-2-line'
+import IconExplorer from '~icons/ri/folder-open-line'
 import IconFlow from '~icons/ri/git-merge-line'
 import IconCog from '~icons/ri/settings-line'
 
@@ -56,6 +57,11 @@ const kitStore = useKitStore()
       <RouterLink :to="{ name: 'new-kitfile' }" class="nav-item" active-class="active">
         <IconAdd class="size-5" />
         <span>New Kitfile</span>
+      </RouterLink>
+
+      <RouterLink :to="{ name: 'file-explorer' }" class="nav-item" active-class="active">
+        <IconExplorer class="size-5" />
+        <span>File Explorer</span>
       </RouterLink>
 
       <RouterLink :to="{ name: 'kitflow' }" class="nav-item" active-class="active">

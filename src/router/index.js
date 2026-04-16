@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 import CompareView from '../views/CompareView.vue'
 import DiskUsageView from '../views/DiskUsageView.vue'
+import FileExplorerView from '../views/FileExplorerView.vue'
 import HomeView from '../views/HomeView.vue'
 import InitFromDirectoryView from '../views/InitFromDirectoryView.vue'
 import KitfileEditorView from '../views/KitfileEditorView.vue'
@@ -61,6 +62,11 @@ const routes = [
     path: '/disk-usage',
     name: 'disk-usage',
     component: DiskUsageView,
+  },
+  {
+    path: '/file-explorer',
+    name: 'file-explorer',
+    component: FileExplorerView,
   },
 ]
 
