@@ -10,6 +10,10 @@ const props = defineProps<{
   placeholder?: string
   baseDir?: string
   pickerType?: 'path' | 'dir'
+  // When set, files selected from outside this directory are copied into it.
+  // The emitted value is then the path relative to copyToDir.
+  // Intended for the edit-kitfile flow where the working dir is a temp folder.
+  copyToDir?: string
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
@@ -21,6 +25,21 @@ async function browse() {
   if (!result.success || !result.path) {
     return
   }
+
+  if (props.copyToDir) {
+    const relative = window.kitops.fs.pathRelative(props.copyToDir, result.path)
+    const isInside = !relative.startsWith('..') && !window.kitops.fs.pathIsAbsolute(relative)
+    if (isInside) {
+      emit('update:modelValue', relative)
+    } else {
+      const name = window.kitops.fs.pathBasename(result.path)
+      const dest = window.kitops.fs.pathJoin(props.copyToDir, name)
+      await window.kitops.fs.copyPath(result.path, dest)
+      emit('update:modelValue', name)
+    }
+    return
+  }
+
   let selected = result.path
   if (props.baseDir && selected.startsWith(props.baseDir + '/')) {
     selected = selected.substring(props.baseDir.length + 1)

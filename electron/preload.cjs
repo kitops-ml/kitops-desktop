@@ -79,6 +79,7 @@ window.kitops = {
     pathJoin: (...args) => path.join(...args),
     pathIsAbsolute: (p) => path.isAbsolute(p),
     pathRelative: (from, to) => path.relative(from, to),
+    pathBasename: (p) => path.basename(p),
     pathSep: path.sep,
   },
 

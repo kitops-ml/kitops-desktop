@@ -157,6 +157,24 @@ function toRelativePath(path: string, baseDir?: string): string {
   return toRelativePathPure(path, kitfileBase)
 }
 
+// In edit mode, files picked from outside the working dir are copied in before
+// being referenced. In new-kitfile mode, paths are kept as-is (absolute paths
+// are converted to relative at save time once the user chooses a save location).
+async function resolveLayerPath(absolutePath: string): Promise<string> {
+  if (isEditing.value && editDir) {
+    const relative = window.kitops.fs.pathRelative(editDir, absolutePath)
+    const isInside = !relative.startsWith('..') && !window.kitops.fs.pathIsAbsolute(relative)
+    if (isInside) {
+      return relative
+    }
+    const name = window.kitops.fs.pathBasename(absolutePath)
+    const dest = window.kitops.fs.pathJoin(editDir, name)
+    await window.kitops.fs.copyPath(absolutePath, dest)
+    return name
+  }
+  return toRelativePath(absolutePath)
+}
+
 const { saving, showPackModal, packError, packing, saveKitfile, handlePackSubmit } = useKitfileSave({
   formData,
   showModelSection,
@@ -210,7 +228,7 @@ async function addCodeFile(): Promise<void> {
     return
   }
   for (const p of result.paths) {
-    formData.value.code.push({ path: toRelativePath(p), description: '', license: '' })
+    formData.value.code.push({ path: await resolveLayerPath(p), description: '', license: '' })
   }
 }
 
@@ -221,7 +239,7 @@ async function addDataset(): Promise<void> {
     return
   }
   for (const p of result.paths) {
-    formData.value.datasets.push({ name: '', path: toRelativePath(p), description: '', license: '' })
+    formData.value.datasets.push({ name: '', path: await resolveLayerPath(p), description: '', license: '' })
   }
 }
 
@@ -232,7 +250,7 @@ async function addDoc(): Promise<void> {
     return
   }
   for (const p of result.paths) {
-    formData.value.docs.push({ path: toRelativePath(p), description: '' })
+    formData.value.docs.push({ path: await resolveLayerPath(p), description: '' })
   }
 }
 
@@ -243,7 +261,7 @@ async function addPrompt(): Promise<void> {
     return
   }
   for (const p of result.paths) {
-    formData.value.prompts.push({ path: toRelativePath(p), description: '' })
+    formData.value.prompts.push({ path: await resolveLayerPath(p), description: '' })
   }
 }
 
@@ -372,7 +390,7 @@ onMounted(async () => {
               <div class="grid grid-cols-2 gap-4 border border-gray-03 bg-elevation-02 p-4">
                 <div class="flex flex-col gap-2">
                   <label class="font-semibold text-sm text-gray-01">Path <span class="text-error">*</span></label>
-                  <InputPath v-model="formData.model.path" placeholder="model.pt" :base-dir="kitfileBaseDir" />
+                  <InputPath v-model="formData.model.path" placeholder="model.pt" :base-dir="kitfileBaseDir" :copy-to-dir="isEditing ? editDir : undefined" />
                   <p v-if="getPathErrorMessage(formData.model.path)" class="text-xs text-error">{{ getPathErrorMessage(formData.model.path) }}</p>
                 </div>
                 <div class="flex flex-col gap-2">
@@ -421,7 +439,7 @@ onMounted(async () => {
                     :key="i"
                     class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-start">
                     <div>
-                      <InputPath v-model="part.path" placeholder="model.shard1.pt" :base-dir="kitfileBaseDir" />
+                      <InputPath v-model="part.path" placeholder="model.shard1.pt" :base-dir="kitfileBaseDir" :copy-to-dir="isEditing ? editDir : undefined" />
                       <p v-if="getPathErrorMessage(part.path)" class="text-xs text-error mt-0.5">{{ getPathErrorMessage(part.path) }}</p>
                     </div>
                     <Input v-model="part.name" type="text" placeholder="shard-1" />
@@ -504,9 +522,11 @@ onMounted(async () => {
         <KitfileYamlPreview v-show="editorMode === 'code'" :yaml="generatedYaml" />
 
         <ul class="text-gold text-xs mt-6 list-disc list-inside p-4 px-6">
-          <li>All layer paths must be relative to the kitfile location.</li>
-          <li>Absolute paths will be converted on save.</li>
-          <li>Paths outside the kitfile directory will block saving.</li>
+          <li v-if="isEditing">Files you browse will be copied into the working directory and referenced by filename.</li>
+          <li v-if="isEditing">Paths outside the working directory will block saving.</li>
+          <li v-if="!isEditing">All layer paths must be relative to the kitfile location.</li>
+          <li v-if="!isEditing">Absolute paths will be converted on save.</li>
+          <li v-if="!isEditing">Paths outside the kitfile directory will block saving.</li>
         </ul>
 
         <!-- Actions -->
