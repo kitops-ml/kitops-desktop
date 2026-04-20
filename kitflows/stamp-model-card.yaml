@@ -1,0 +1,70 @@
+name: stamp-model-card
+description: >
+  Pulls a modelkit, reads its name, version, and description from the Kitfile,
+  writes a consistently-formatted MODEL-CARD.md into the docs layer, then
+  repacks and pushes. Ensures every published modelkit ships with an up-to-date
+  model card without anyone maintaining docs by hand.
+
+vars:
+  source_ref: ""   # required — e.g. jozu.ml/myorg/my-model:v2.0
+  output_ref: ""   # required — e.g. jozu.ml/myorg/my-model:v2.0 (can be the same ref to update in-place)
+
+steps:
+
+  - name: Pull modelkit
+    kit.pull:
+      args: ${source_ref}
+
+  - name: Unpack full artifact
+    kit.unpack:
+      args: ${source_ref}
+      dir: ./workspace
+
+  # Read the fields we need from the Kitfile so the model card stays in sync.
+  - name: Read Kitfile metadata
+    read:
+      format: yaml
+      source: ./workspace/Kitfile
+      into:
+        model_name: package.name
+        model_version: package.version
+        model_description: package.description
+
+  # Write a fresh MODEL-CARD.md using the values read above.
+  # Any existing file at this path is overwritten so the card never goes stale.
+  - name: Write model card
+    write:
+      path: ./workspace/docs/MODEL-CARD.md
+      content: |
+        # ${model_name}
+
+        **Version:** ${model_version}
+
+        ## Description
+
+        ${model_description}
+
+        ## Usage
+
+        Pull this modelkit:
+
+        ```sh
+        kit pull <registry>/<org>/<model>:<tag>
+        kit unpack <registry>/<org>/<model>:<tag> --dir ./my-model
+        ```
+
+        ---
+        *Generated automatically from Kitfile metadata.*
+
+  - name: Pack with model card
+    kit.pack:
+      args: ./workspace
+      tag: ${output_ref}
+
+  - name: Inspect result
+    kit.info:
+      args: ${output_ref}
+
+  - name: Push updated modelkit
+    kit.push:
+      args: ${output_ref}

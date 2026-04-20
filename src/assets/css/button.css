@@ -1,0 +1,42 @@
+@utility button {
+  @apply py-2 px-4;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply transition-all duration-200;
+  @apply font-semibold;
+  @apply bg-transparent;
+  @apply inline-flex items-center justify-center gap-2;
+}
+
+@utility button-action {
+  @apply flex items-center gap-2;
+  @apply text-sm text-gray-01;
+  @apply px-2 py-1;
+  @apply enabled:hover:text-gold enabled:hover:bg-gold/10;
+  @apply transition-colors;
+}
+
+@layer components {
+  .button-action-danger {
+    @apply button-action;
+    @apply hover:text-error! hover:bg-error/10!;
+  }
+
+  .button-primary {
+    @apply button;
+    @apply border border-gold text-gold hover:bg-gold hover:text-off-white;
+  }
+
+  .button-secondary {
+    @apply button;
+    @apply border border-gray-03 text-gray-01 hover:bg-elevation-03 hover:text-off-white hover:border-gold;
+  }
+
+  .button-submit {
+    @apply button;
+    @apply bg-gold text-black hover:bg-gold/90;
+  }
+
+  .button-small {
+    @apply px-3 py-1 text-sm;
+  }
+}

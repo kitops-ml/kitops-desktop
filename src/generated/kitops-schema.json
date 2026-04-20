@@ -1,0 +1,126 @@
+{
+  "commands": {
+    "diff": {
+      "positionals": [
+        "reference1",
+        "reference2"
+      ],
+      "flags": {}
+    },
+    "info": {
+      "positionals": [
+        "path"
+      ],
+      "flags": {
+        "remote": "boolean",
+        "filter": "string"
+      }
+    },
+    "init": {
+      "positionals": [
+        "directory"
+      ],
+      "flags": {
+        "name": "string",
+        "desc": "string",
+        "author": "string",
+        "force": "boolean"
+      }
+    },
+    "inspect": {
+      "positionals": [
+        "path"
+      ],
+      "flags": {
+        "remote": "boolean"
+      }
+    },
+    "list": {
+      "positionals": [
+        "repository"
+      ],
+      "flags": {
+        "format": "string"
+      }
+    },
+    "login": {
+      "positionals": [
+        "registry",
+        "username",
+        "password"
+      ],
+      "flags": {
+        "tlsVerify": "boolean",
+        "tlsCert": "string"
+      }
+    },
+    "logout": {
+      "positionals": [
+        "registry"
+      ],
+      "flags": {}
+    },
+    "pack": {
+      "positionals": [
+        "directory"
+      ],
+      "flags": {
+        "file": "string",
+        "tag": "string",
+        "compression": "string",
+        "useModelPack": "boolean"
+      }
+    },
+    "pull": {
+      "positionals": [
+        "path"
+      ],
+      "flags": {
+        "tlsVerify": "boolean",
+        "tlsCert": "string"
+      }
+    },
+    "push": {
+      "positionals": [
+        "source",
+        "destination"
+      ],
+      "flags": {
+        "tlsVerify": "boolean",
+        "tlsCert": "string"
+      }
+    },
+    "remove": {
+      "positionals": [
+        "path"
+      ],
+      "flags": {
+        "force": "boolean",
+        "all": "boolean",
+        "remote": "boolean"
+      }
+    },
+    "tag": {
+      "positionals": [
+        "source",
+        "destination"
+      ],
+      "flags": {}
+    },
+    "unpack": {
+      "positionals": [
+        "path"
+      ],
+      "flags": {
+        "dir": "string",
+        "overwrite": "boolean",
+        "ignoreExisting": "boolean",
+        "filter": "string"
+      }
+    },
+    "version": {
+      "positionals": [],
+      "flags": {}
+    }
+  }
+}

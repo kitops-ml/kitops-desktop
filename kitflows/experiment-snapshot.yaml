@@ -1,0 +1,59 @@
+name: Experiment snapshot
+description: >
+  Captures the current state of a training run — model checkpoint, training
+  data, source code, and results — as a versioned, reproducible modelkit.
+  Run this immediately after a training job completes so the exact state
+  that produced your metrics is preserved and shareable with teammates.
+  Optionally runs a metrics export script before packing to include final
+  numbers in the artifact.
+
+vars:
+  experiment_dir: "."         # directory containing your Kitfile and artifacts
+  ref: ""                     # required — e.g. jozu.ml/myorg/classifier:exp-42
+  metrics_script: ""          # optional — script that writes metrics before packing
+                              #            e.g. python export_metrics.py --out results/
+
+steps:
+
+  # ── 1. Export metrics (optional) ─────────────────────────────────────────
+  # Point metrics_script at a script that writes final metrics/eval results
+  # to a file inside experiment_dir (e.g. results/metrics.json) so the
+  # snapshot includes the numbers that describe this run.
+
+  - name: Export metrics
+    when: ${metrics_script}
+    run:
+      command: ${metrics_script}
+      dir: ${experiment_dir}
+
+  # ── 2. Initialize a Kitfile ───────────────────────────────────────────────
+  # kit init scans the directory and generates a Kitfile from the layout.
+  # Remove this step if you already maintain a hand-authored Kitfile — your
+  # existing file will be used as-is by the pack step below.
+
+  - name: Initialize Kitfile
+    kit.init:
+      args: ${experiment_dir}
+
+  # ── 3. Pack the experiment ────────────────────────────────────────────────
+
+  - name: Pack snapshot
+    kit.pack:
+      args: ${experiment_dir}
+      tag: ${ref}
+
+  # ── 4. Inspect artifact ───────────────────────────────────────────────────
+
+  - name: Show snapshot metadata
+    kit.info:
+      args: ${ref}
+
+  - name: List layers
+    kit.inspect:
+      args: ${ref}
+
+  # ── 5. Push to registry ───────────────────────────────────────────────────
+
+  - name: Push snapshot to registry
+    kit.push:
+      args: ${ref}

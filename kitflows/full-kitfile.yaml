@@ -1,0 +1,149 @@
+name: build-full-modelkit
+description: >
+  Creates a modelkit with every supported layer type (model, datasets, code,
+  docs, prompts), packs it, and pushes it to a registry.
+  Designed to be shared and reproduced by anyone with access to the registry.
+
+# ── Variables ────────────────────────────────────────────────────────────────
+# Variables without a default are required — the app will prompt before running.
+# Variables with a default can be overridden at run time.
+
+vars:
+  package_name: "" # required
+  author: ""          # required
+  package_version: "1.0.0" # required
+  repository: ""        # required — e.g. jozu.ml/myorg/my-llm
+  tag: latest
+  output_dir: "./full-kitfile" # required
+  model_name: my-llm
+  model_version: "1.0.0"
+  model_framework: pytorch
+  model_framework_version: "2.3.0"
+  license: Apache-2.0
+
+steps:
+
+  # ── 1. Supporting files ───────────────────────────────────────────────────
+  # The `write` step creates any missing parent directories automatically.
+  # The `mkdir` step is for directories that won't contain a written file.
+
+  - name: Create model weights directory
+    mkdir: ${output_dir}/model
+
+  - name: Create training dataset directory
+    mkdir: ${output_dir}/data/train
+
+  - name: Create validation dataset directory
+    mkdir: ${output_dir}/data/val
+
+  - name: Write system prompt
+    write:
+      path: ${output_dir}/prompts/system.md
+      content: |
+        You are ${model_name}, a helpful and concise assistant.
+        Always respond in the language of the user.
+
+  - name: Write inference script
+    write:
+      path: ${output_dir}/code/inference.py
+      content: |
+        # Entry point for model inference.
+        # Replace with your actual inference implementation.
+
+        def run(prompt: str) -> str:
+            raise NotImplementedError
+
+  - name: Write training script
+    write:
+      path: ${output_dir}/code/train.py
+      content: |
+        # Entry point for fine-tuning.
+        # Replace with your actual training implementation.
+
+        def train(config_path: str) -> None:
+            raise NotImplementedError
+
+  - name: Write model card
+    write:
+      path: ${output_dir}/docs/README.md
+      content: |
+        # ${model_name} v${model_version}
+
+        ## Overview
+        Fine-tuned language model.
+
+        ## Framework
+        ${model_framework} ${model_framework_version}
+
+        ## License
+        ${license}
+
+        ## Usage
+        See `code/inference.py` for an inference example.
+
+  # ── 2. Kitfile ────────────────────────────────────────────────────────────
+  # Written last so all referenced paths already exist.
+
+  - name: Write Kitfile
+    write:
+      path: ${output_dir}/Kitfile
+      content: |
+        manifestVersion: 1.0.0
+
+        package:
+          name: ${package_name}
+          version: ${package_version}
+          description: Fine-tuned language model with all layer types.
+          authors:
+            - ${author}
+          license: ${license}
+
+        model:
+          name: ${model_name}
+          path: ./model/
+          framework: ${model_framework}
+          version: ${model_framework_version}
+          description: Serialized model weights and LoRA adapter.
+          license: ${license}
+          # parameters — key/value metadata stored in the OCI manifest (flat map, not a file path)
+          parameters:
+            context_length: 4096
+            quantization: Q4_K_M
+            tensor_type: float16
+            vocab_size: 32000
+            architecture: transformer
+
+        datasets:
+          - name: training-data
+            path: ./data/train/
+            description: Training split.
+            license: CC-BY-4.0
+          - name: validation-data
+            path: ./data/val/
+            description: Validation/evaluation split.
+            license: CC-BY-4.0
+
+        code:
+          - path: ./code/
+            description: Training and inference scripts.
+            license: ${license}
+
+        docs:
+          - path: ./docs/
+            description: Model card and usage documentation.
+
+        prompts:
+          - path: ./prompts/system.md
+            description: System prompt and few-shot templates.
+
+  # ── 3. Pack & publish ─────────────────────────────────────────────────────
+
+  - name: Pack Modelkit
+    kit.pack:
+      args: ${output_dir}
+      tag: ${repository}:${tag}
+
+  - name: Inspect the result Kitfile
+    # Sanity check — confirms layers and digest
+    kit.info:
+      ref: ${repository}:${tag}

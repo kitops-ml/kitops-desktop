@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  /* KitOps Brand Colors */
+  --color-gold: #FFAF52;
+
+  --color-elevation-01: #1b1b1f;
+  --color-elevation-02: #161618;
+  --color-elevation-03: #202127;
+  --color-elevation-04: #252529;
+
+  --color-surface: #202127;
+
+  --color-off-white: #ECECEC;
+  --color-gray-01: #98989f;
+  --color-gray-02: #6a6a71;
+  --color-gray-03: #3c3f44;
+
+  /* Kitfile Layers Colors */
+  --color-layer-model: var(--color-amber-400);
+  --color-layer-code: var(--color-blue-400);
+  --color-layer-datasets: var(--color-green-400);
+  --color-layer-docs: var(--color-pink-400);
+  --color-layer-prompt: var(--color-purple-400);
+
+  /* Semantic colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+
+  /* Shadows */
+  --shadow-glow: 0 0 20px rgba(245, 158, 11, 0.3);
+
+  /* Sharp corners - KitOps style */
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-display);
+  background: var(--color-elevation-01);
+  color: var(--color-off-white);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-off-white) 50%, transparent);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* Selection */
+::selection {
+  background: var(--color-gold);
+  color: var(--color-surface);
+}
+
+/* Button base */
+button {
+  font-family: var(--font-display);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input base */
+input, textarea, select {
+  font-family: var(--font-display);
+  outline: none;
+}
+
+code, pre {
+  font-family: var(--font-mono);
+}
+
+@import "./assets/css/button.css";
+@import "./assets/css/forms.css";
