@@ -132,6 +132,46 @@ function getNestedValue(obj, dotPath) {
   }, obj)
 }
 
+// ── Loop expansion ────────────────────────────────────────────────────────────
+
+/**
+ * Flattens `for` loop steps into concrete steps using the resolved vars.
+ * Must be called after vars are collected so `count` expressions can be evaluated.
+ *
+ * Syntax:
+ *   - name: Optional group label
+ *     for:
+ *       var: i          # loop variable name, available as ${i} in nested steps
+ *       count: "10"     # iterations (1-based); can reference a var: "${n}"
+ *       steps:
+ *         - name: Step ${i}
+ *           write: ...
+ */
+export function expandSteps(steps, vars) {
+  const flat = []
+  for (const step of steps) {
+    const forDef = step.for
+    if (forDef !== null && forDef !== undefined && typeof forDef === 'object' && !Array.isArray(forDef)) {
+      const count = Math.max(0, parseInt(interpolate(String(forDef.count ?? '0'), vars), 10))
+      const varName = String(forDef.var ?? 'i')
+      const loopSteps = Array.isArray(forDef.steps) ? forDef.steps : []
+      const baseName = step.name ?? 'Loop'
+      for (let iter = 1; iter <= count; iter++) {
+        const iterVars = { ...vars, [varName]: String(iter) }
+        for (const loopStep of loopSteps) {
+          const name = loopStep.name
+            ? interpolate(String(loopStep.name), iterVars)
+            : `${baseName} ${iter}`
+          flat.push({ ...loopStep, name, _loopVar: varName, _loopVal: String(iter) })
+        }
+      }
+    } else {
+      flat.push(step)
+    }
+  }
+  return flat
+}
+
 // ── Flow parsing ──────────────────────────────────────────────────────────────
 
 const KNOWN_FILESYSTEM_COMMANDS = new Set(['mkdir', 'write', 'copy', 'move', 'read', 'echo', 'run'])
@@ -520,22 +560,29 @@ export async function main() {
     if (flow.description) {
       console.log(c(ansi.gray, flow.description.trim()))
     }
-    console.log(c(ansi.gray, `${flow.steps.length} step${flow.steps.length !== 1 ? 's' : ''} · workspace: ${workspaceRoot}`))
+    console.log(c(ansi.gray, `workspace: ${workspaceRoot}`))
   }
 
   // collect variables
   const vars = await collectVars(flow.varDefs, cliVars, jsonMode)
+  const flatSteps = expandSteps(flow.steps, vars)
 
   if (!jsonMode) {
+    console.log(c(ansi.gray, `${flatSteps.length} step${flatSteps.length !== 1 ? 's' : ''}`))
     console.log()
   }
 
   // run steps
   let exitCode = 0
 
-  for (let i = 0; i < flow.steps.length; i++) {
-    const step = flow.steps[i]
+  for (let i = 0; i < flatSteps.length; i++) {
+    const step = flatSteps[i]
     const name = step.name ?? `Step ${i + 1}`
+
+    if (step._loopVar) {
+      vars[step._loopVar] = step._loopVal
+    }
+
     const command = detectCommand(step)
 
     if (!command) {
@@ -546,8 +593,8 @@ export async function main() {
         console.error('     No recognized command found in step')
       }
       exitCode = 1
-      for (let j = i + 1; j < flow.steps.length; j++) {
-        const skipName = flow.steps[j].name ?? `Step ${j + 1}`
+      for (let j = i + 1; j < flatSteps.length; j++) {
+        const skipName = flatSteps[j].name ?? `Step ${j + 1}`
         if (jsonMode) {
           process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
         } else {
@@ -623,8 +670,8 @@ export async function main() {
         console.error(`     ${c(ansi.red, errorMsg)}`)
       }
 
-      for (let j = i + 1; j < flow.steps.length; j++) {
-        const skipName = flow.steps[j].name ?? `Step ${j + 1}`
+      for (let j = i + 1; j < flatSteps.length; j++) {
+        const skipName = flatSteps[j].name ?? `Step ${j + 1}`
         if (jsonMode) {
           process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
         } else {
