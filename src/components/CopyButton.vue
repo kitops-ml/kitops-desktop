@@ -17,7 +17,7 @@ const { copy, copied } = useClipboard({ source })
 
 <template>
   <button
-    v-if="!compact"
+    v-if="!props.compact"
     class="flex items-center gap-2 py-2 px-3 bg-surface text-sm font-semibold transition-all duration-200 hover:bg-transparent hover:text-gold"
     :class="copied ? 'text-gold' : 'text-gray-01'"
     @click="copy()">
