@@ -288,7 +288,7 @@ function changeViewMode(mode: Settings['homeViewTab']) {
           <button
             class="flex items-center gap-2 button-secondary"
             :disabled="pulling"
-            @click="openPullModal">
+            @click="openPullModal()">
             <IconSpinner v-if="pulling" class="size-4.5 animate-spin" />
             <IconDownload v-else class="size-4" />
             Pull
