@@ -43,7 +43,7 @@ function openExternal(url: string) {
                 <IconExternalLink class="size-3.5 shrink-0" />
                 <span>Open URL</span>
               </button>
-              <CopyButton :content="doc.path" compact />
+              <CopyButton :content="doc.path" label="Copy path" compact />
               <CopyButton v-if="reference" :content="`kit unpack ${reference} --filter=docs:${doc.path}`" compact label="kit unpack" />
               <button
                 v-if="reference"

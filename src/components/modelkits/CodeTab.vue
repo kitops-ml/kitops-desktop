@@ -27,7 +27,7 @@ const { exportingFilter, exportLayer } = useLayerExport()
           <div class="flex items-start justify-between gap-2">
             <span class="text-sm text-off-white font-medium break-all font-mono">{{ code.path }}</span>
             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <CopyButton :content="code.path" compact />
+              <CopyButton :content="code.path" label="Copy path" compact />
               <CopyButton v-if="reference" :content="`kit unpack ${reference} --filter=code:${code.path}`" compact label="kit unpack" />
               <button
                 v-if="reference"

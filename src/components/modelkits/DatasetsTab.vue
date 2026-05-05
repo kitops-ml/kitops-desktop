@@ -41,7 +41,7 @@ function toYaml(parameters: Record<string, unknown>): string {
           <div class="flex items-start justify-between gap-2">
             <span class="text-sm text-off-white font-medium break-all font-mono">{{ dataset.path }}</span>
             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <CopyButton :content="dataset.path" compact />
+              <CopyButton :content="dataset.path" label="Copy path" compact />
               <CopyButton v-if="reference" :content="`kit unpack ${reference} --filter=datasets:${dataset.path}`" compact label="kit unpack" />
               <button
                 v-if="reference"

@@ -41,7 +41,7 @@ function toYaml(parameters: Record<string, unknown>): string {
           <div class="flex items-start justify-between gap-2">
             <span class="text-sm text-off-white font-medium break-all font-mono">{{ model.path }}</span>
             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <CopyButton v-if="model.path" :content="model.path" compact />
+              <CopyButton v-if="model.path" :content="model.path" label="Copy path" compact />
               <CopyButton v-if="reference && model.path" :content="`kit unpack ${reference} --filter=model:${model.path}`" compact label="kit unpack" />
               <button
                 v-if="reference && model.path"
