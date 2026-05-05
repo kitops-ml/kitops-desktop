@@ -8,6 +8,7 @@ import IconCopy from '~icons/ri/file-copy-line'
 const props = defineProps<{
   content: string
   label?: string
+  compact?: boolean
 }>()
 
 const source = computed(() => props.content)
@@ -16,6 +17,7 @@ const { copy, copied } = useClipboard({ source })
 
 <template>
   <button
+    v-if="!compact"
     class="flex items-center gap-2 py-2 px-3 bg-surface text-sm font-semibold transition-all duration-200 hover:bg-transparent hover:text-gold"
     :class="copied ? 'text-gold' : 'text-gray-01'"
     @click="copy()">
@@ -31,6 +33,15 @@ const { copy, copied } = useClipboard({ source })
         </span>
       </Transition>
     </span>
+  </button>
+  <button
+    v-else
+    class="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all duration-200 hover:text-gold"
+    :class="copied ? 'text-gold' : 'text-gray-02'"
+    @click.stop="copy()">
+    <IconCheck v-if="copied" class="size-3.5 shrink-0" />
+    <IconCopy v-else class="size-3.5 shrink-0" />
+    <span>{{ copied ? 'Copied!' : (label || 'Copy') }}</span>
   </button>
 </template>
 

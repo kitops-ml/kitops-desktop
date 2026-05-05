@@ -60,6 +60,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const repository = route.params.repository as string
 const tag = route.params.tag as string
+const reference = computed(() => tag && tag !== '<none>' ? `${repository}:${tag}` : undefined)
 
 const activeTab = ref('overview')
 
@@ -426,21 +427,24 @@ async function confirmDelete() {
 
           <ModelTab
             v-if="activeTab === 'model' && kitfile.model"
-            :model="kitfile.model" />
+            :model="kitfile.model"
+            :reference="reference" />
           <CodeTab
             v-if="activeTab === 'code'"
-            :items="kitfile.code || []" />
+            :items="kitfile.code || []"
+            :reference="reference" />
           <DatasetsTab
             v-if="activeTab === 'datasets'"
-            :items="kitfile.datasets || []" />
+            :items="kitfile.datasets || []"
+            :reference="reference" />
           <DocsTab
             v-if="activeTab === 'docs'"
-            :items="kitfile.docs || []" />
+            :items="kitfile.docs || []"
+            :reference="reference" />
           <PromptsTab
             v-if="activeTab === 'prompts'"
             :items="kitfile?.prompts || []"
-            :repository="repository"
-            :tag="tag" />
+            :reference="reference" />
           <KitfileTab
             v-if="activeTab === 'kitfile'"
             :yaml="kitfileYaml" />
@@ -452,54 +456,54 @@ async function confirmDelete() {
             :digest="modelKit?.digest || ''" />
         </div>
       </div>
+
+      <TagsFlyout
+        :open="showTagsSidebar"
+        :repository="repository"
+        :current-tag="tag"
+        :tags="modelkitTags"
+        @close="showTagsSidebar = false"
+        @select="(selectedTag) => router.push({ name: 'modelkit-detail', params: { repository, tag: selectedTag } })" />
+
+      <TagModal
+        :open="showTagModal"
+        :repository="repository"
+        :tag="tag"
+        :error="tagError"
+        :loading="tagging !== null" @close="closeTagModal"
+        @submit="handleTag" />
+
+      <PushModal
+        :open="showPushModal"
+        :initial-repository="repository"
+        :initial-tag="tag"
+        :error="pushError"
+        @close="closePushModal"
+        @submit="onPushFormSubmit" />
+
+      <PushConfirmModal
+        :open="showPushConfirmModal"
+        :source="`${repository}:${tag}`"
+        :destination-path="pushConfirmDestPath"
+        :loading="pushing !== null"
+        @close="closePushConfirmModal"
+        @confirm="confirmPush" />
+
+      <EditUnpackModal
+        :open="showEditModal"
+        :repository="repository"
+        :tag="tag"
+        :size="modelKit?.size"
+        @close="showEditModal = false"
+        @complete="onEditComplete" />
+
+      <DeleteModelKitModal
+        :open="showDeleteConfirm"
+        :name="modelKit?.name"
+        :tag="tag"
+        @close="cancelDelete"
+        @confirm="confirmDelete" />
     </div>
-
-    <TagsFlyout
-      :open="showTagsSidebar"
-      :repository="repository"
-      :current-tag="tag"
-      :tags="modelkitTags"
-      @close="showTagsSidebar = false"
-      @select="(selectedTag) => router.push({ name: 'modelkit-detail', params: { repository, tag: selectedTag } })" />
-
-    <TagModal
-      :open="showTagModal"
-      :repository="repository"
-      :tag="tag"
-      :error="tagError"
-      :loading="tagging !== null" @close="closeTagModal"
-      @submit="handleTag" />
-
-    <PushModal
-      :open="showPushModal"
-      :initial-repository="repository"
-      :initial-tag="tag"
-      :error="pushError"
-      @close="closePushModal"
-      @submit="onPushFormSubmit" />
-
-    <PushConfirmModal
-      :open="showPushConfirmModal"
-      :source="`${repository}:${tag}`"
-      :destination-path="pushConfirmDestPath"
-      :loading="pushing !== null"
-      @close="closePushConfirmModal"
-      @confirm="confirmPush" />
-
-    <EditUnpackModal
-      :open="showEditModal"
-      :repository="repository"
-      :tag="tag"
-      :size="modelKit?.size"
-      @close="showEditModal = false"
-      @complete="onEditComplete" />
-
-    <DeleteModelKitModal
-      :open="showDeleteConfirm"
-      :name="modelKit?.name"
-      :tag="tag"
-      @close="cancelDelete"
-      @confirm="confirmDelete" />
   </div>
 </template>
 
