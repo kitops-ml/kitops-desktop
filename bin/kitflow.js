@@ -565,25 +565,22 @@ export async function main() {
 
   // collect variables
   const vars = await collectVars(flow.varDefs, cliVars, jsonMode)
-  const flatSteps = expandSteps(flow.steps, vars)
 
   if (!jsonMode) {
-    console.log(c(ansi.gray, `${flatSteps.length} step${flatSteps.length !== 1 ? 's' : ''}`))
+    console.log(c(ansi.gray, `${flow.steps.length} step${flow.steps.length !== 1 ? 's' : ''}`))
     console.log()
   }
 
-  // run steps
+  // run steps — for-loop steps execute as a single atomic step; each iteration's
+  // result is streamed as step-output so the UI groups them under one entry.
   let exitCode = 0
 
-  for (let i = 0; i < flatSteps.length; i++) {
-    const step = flatSteps[i]
-    const name = step.name ?? `Step ${i + 1}`
-
-    if (step._loopVar) {
-      vars[step._loopVar] = step._loopVal
-    }
-
-    const command = detectCommand(step)
+  for (let i = 0; i < flow.steps.length; i++) {
+    const step = flow.steps[i]
+    const name = step.name ? interpolate(String(step.name), vars) : `Step ${i + 1}`
+    const forDef = step.for
+    const isForStep = forDef !== null && forDef !== undefined && typeof forDef === 'object' && !Array.isArray(forDef)
+    const command = isForStep ? 'for' : detectCommand(step)
 
     if (!command) {
       if (jsonMode) {
@@ -593,8 +590,8 @@ export async function main() {
         console.error('     No recognized command found in step')
       }
       exitCode = 1
-      for (let j = i + 1; j < flatSteps.length; j++) {
-        const skipName = flatSteps[j].name ?? `Step ${j + 1}`
+      for (let j = i + 1; j < flow.steps.length; j++) {
+        const skipName = flow.steps[j].name ? interpolate(String(flow.steps[j].name), vars) : `Step ${j + 1}`
         if (jsonMode) {
           process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
         } else {
@@ -617,70 +614,164 @@ export async function main() {
       }
     }
 
-    if (jsonMode) {
-      process.stdout.write(JSON.stringify({ type: 'step-start', index: i, name, command, params: interpolateDeep(step[command] ?? {}, vars) }) + '\n')
-    } else if (isTTY) {
-      process.stdout.write(`  ${c(ansi.yellow, '●')} ${name}…`)
-    }
+    if (isForStep) {
+      const count = Math.max(0, parseInt(interpolate(String(forDef.count ?? '0'), vars), 10))
+      const varName = String(forDef.var ?? 'i')
+      const loopSteps = Array.isArray(forDef.steps) ? forDef.steps : []
 
-    const start = Date.now()
+      if (jsonMode) {
+        process.stdout.write(JSON.stringify({ type: 'step-start', index: i, name, command: 'for', params: { var: varName, count } }) + '\n')
+      } else if (isTTY) {
+        process.stdout.write(`  ${c(ansi.yellow, '●')} ${name}…`)
+      }
 
-    try {
-      const output = await executeStep(
-        command,
-        step[command],
-        vars,
-        workspaceRoot,
-        (line) => {
-          if (jsonMode) {
-            process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line }) + '\n')
-          } else if (isTTY) {
-            process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, line.split('\n').at(-1) ?? '')}          `)
+      const start = Date.now()
+      let loopFailed = false
+      let loopError = ''
+      const stepOutputs = []
+
+      outer: for (let iter = 1; iter <= count; iter++) {
+        vars[varName] = String(iter)
+        for (const loopStep of loopSteps) {
+          const innerName = loopStep.name ? interpolate(String(loopStep.name), vars) : `${name} ${iter}`
+          const innerCommand = detectCommand(loopStep)
+          if (!innerCommand) {
+            loopFailed = true
+            loopError = `No recognized command in inner step: ${innerName}`
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line: `✗ ${loopError}` }) + '\n')
+            }
+            break outer
           }
-        },
-      )
+          try {
+            const output = await executeStep(innerCommand, loopStep[innerCommand], vars, workspaceRoot, (line) => {
+              if (jsonMode) {
+                process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line }) + '\n')
+              } else if (isTTY) {
+                process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, line.split('\n').at(-1) ?? '')}          `)
+              }
+            })
+            const resultLine = `${innerName}: ${output}`
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line: resultLine }) + '\n')
+            } else if (isTTY) {
+              process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, resultLine.split('\n').at(-1) ?? '')}          `)
+            } else {
+              stepOutputs.push(resultLine)
+            }
+          } catch (e) {
+            loopFailed = true
+            loopError = `${innerName}: ${e instanceof Error ? e.message : String(e)}`
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line: `✗ ${loopError}` }) + '\n')
+            }
+            break outer
+          }
+        }
+      }
 
       const duration = Date.now() - start
 
-      if (jsonMode) {
-        process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'success', duration, output }) + '\n')
-      } else {
-        if (isTTY) {
-          process.stdout.write('\r')
+      if (loopFailed) {
+        if (jsonMode) {
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'error', duration, error: loopError }) + '\n')
+        } else {
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.red, '✗')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
+          console.error(`     ${c(ansi.red, loopError)}`)
         }
-        console.log(`  ${c(ansi.green, '✓')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
-        if (output && output !== 'Done') {
-          for (const line of output.trim().split('\n')) {
+        for (let j = i + 1; j < flow.steps.length; j++) {
+          const skipName = flow.steps[j].name ? interpolate(String(flow.steps[j].name), vars) : `Step ${j + 1}`
+          if (jsonMode) {
+            process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
+          } else {
+            console.log(`  ${c(ansi.gray, '—')} ${c(ansi.dim, skipName)} ${c(ansi.gray, '(skipped)')}`)
+          }
+        }
+        exitCode = 1
+        break
+      } else {
+        // step-done without output field so accumulated step-output lines are preserved in UI
+        if (jsonMode) {
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'success', duration }) + '\n')
+        } else {
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.green, '✓')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)} ${c(ansi.gray, `[${count} × ${loopSteps.length}]`)}`)
+          for (const line of stepOutputs) {
             console.log(`     ${c(ansi.gray, line)}`)
           }
         }
       }
-    } catch (e) {
-      const duration = Date.now() - start
-
+    } else {
       if (jsonMode) {
-        const error = e instanceof Error ? e.message : String(e)
-        process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'error', duration, error }) + '\n')
-      } else {
-        const errorMsg = e instanceof Error ? e.message : String(e)
-        if (isTTY) {
-          process.stdout.write('\r')
-        }
-        console.log(`  ${c(ansi.red, '✗')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
-        console.error(`     ${c(ansi.red, errorMsg)}`)
+        process.stdout.write(JSON.stringify({ type: 'step-start', index: i, name, command, params: interpolateDeep(step[command] ?? {}, vars) }) + '\n')
+      } else if (isTTY) {
+        process.stdout.write(`  ${c(ansi.yellow, '●')} ${name}…`)
       }
 
-      for (let j = i + 1; j < flatSteps.length; j++) {
-        const skipName = flatSteps[j].name ?? `Step ${j + 1}`
+      const start = Date.now()
+
+      try {
+        const output = await executeStep(
+          command,
+          step[command],
+          vars,
+          workspaceRoot,
+          (line) => {
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line }) + '\n')
+            } else if (isTTY) {
+              process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, line.split('\n').at(-1) ?? '')}          `)
+            }
+          },
+        )
+
+        const duration = Date.now() - start
+
         if (jsonMode) {
-          process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'success', duration, output }) + '\n')
         } else {
-          console.log(`  ${c(ansi.gray, '—')} ${c(ansi.dim, skipName)} ${c(ansi.gray, '(skipped)')}`)
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.green, '✓')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
+          if (output && output !== 'Done') {
+            for (const line of output.trim().split('\n')) {
+              console.log(`     ${c(ansi.gray, line)}`)
+            }
+          }
         }
-      }
+      } catch (e) {
+        const duration = Date.now() - start
 
-      exitCode = 1
-      break
+        if (jsonMode) {
+          const error = e instanceof Error ? e.message : String(e)
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'error', duration, error }) + '\n')
+        } else {
+          const errorMsg = e instanceof Error ? e.message : String(e)
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.red, '✗')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
+          console.error(`     ${c(ansi.red, errorMsg)}`)
+        }
+
+        for (let j = i + 1; j < flow.steps.length; j++) {
+          const skipName = flow.steps[j].name ? interpolate(String(flow.steps[j].name), vars) : `Step ${j + 1}`
+          if (jsonMode) {
+            process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
+          } else {
+            console.log(`  ${c(ansi.gray, '—')} ${c(ansi.dim, skipName)} ${c(ansi.gray, '(skipped)')}`)
+          }
+        }
+
+        exitCode = 1
+        break
+      }
     }
   }
 

@@ -161,42 +161,23 @@ function detectCommand(step: RawStep): string | null {
   return null
 }
 
-function expandSteps(steps: RawStep[], vars: Record<string, string>): RawStep[] {
-  const flat: RawStep[] = []
-  for (const step of steps) {
-    const forDef = step.for
-    if (forDef !== null && forDef !== undefined && typeof forDef === 'object' && !Array.isArray(forDef)) {
-      const f = forDef as { var?: unknown; count?: unknown; steps?: unknown }
-      const count = Math.max(0, parseInt(interpolate(String(f.count ?? '0'), vars), 10))
-      const varName = String(f.var ?? 'i')
-      const loopSteps = Array.isArray(f.steps) ? (f.steps as RawStep[]) : []
-      const baseName = step.name ?? 'Loop'
-      for (let iter = 1; iter <= count; iter++) {
-        const iterVars = { ...vars, [varName]: String(iter) }
-        for (const loopStep of loopSteps) {
-          const name = loopStep.name
-            ? interpolate(String(loopStep.name), iterVars)
-            : `${baseName} ${iter}`
-          flat.push({ ...loopStep, name })
-        }
-      }
-    } else {
-      flat.push(step)
-    }
-  }
-  return flat
-}
-
 function buildStepStates(steps: RawStep[], vars: Record<string, string> = {}): StepState[] {
-  return expandSteps(steps, vars).map((step, index) => ({
-    index,
-    name: step.name ?? `Step ${index + 1}`,
-    command: detectCommand(step) ?? 'unknown',
-    status: 'pending' as StepStatus,
-    output: '',
-    error: null,
-    duration: null,
-  }))
+  return steps.map((step, index) => {
+    const rawName = step.name ? String(step.name) : `Step ${index + 1}`
+    const name = interpolate(rawName, vars)
+    const forDef = step.for
+    const isForStep = forDef !== null && forDef !== undefined && typeof forDef === 'object' && !Array.isArray(forDef)
+    const command = isForStep ? 'for' : (detectCommand(step) ?? 'unknown')
+    return {
+      index,
+      name,
+      command,
+      status: 'pending' as StepStatus,
+      output: '',
+      error: null,
+      duration: null,
+    }
+  })
 }
 
 const importedFlows = ref<ImportedFlow[]>(readLibrary())

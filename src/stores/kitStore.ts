@@ -90,9 +90,11 @@ export const useKitStore = defineStore('kit', () => {
 
   async function getKitfile(path: string): Promise<Kitfile> {
     const [repo, tag] = path.split(':')
-    const digest = modelKits.value.find(k => k.repository === repo && k.tag === tag)?.digest
+    const found = modelKits.value.find(k => k.repository === repo && k.tag === tag)
+    const digest = found?.digest
+    const ref = tag === '<none>' && digest ? `${repo}@${digest}` : path
     try {
-      const kitfile = await window.kitops.kit.info(path, undefined, digest)
+      const kitfile = await window.kitops.kit.info(ref, undefined, digest)
       setCurrentKitfile(kitfile)
       return kitfile
     } catch (error) {
@@ -103,9 +105,11 @@ export const useKitStore = defineStore('kit', () => {
 
   async function getManifest(path: string, flags?: InspectFlags): Promise<Manifest> {
     const [repo, tag] = path.split(':')
-    const digest = modelKits.value.find(k => k.repository === repo && k.tag === tag)?.digest
+    const found = modelKits.value.find(k => k.repository === repo && k.tag === tag)
+    const digest = found?.digest
+    const ref = tag === '<none>' && digest ? `${repo}@${digest}` : path
     try {
-      const manifest = await window.kitops.kit.inspect(path, flags, digest)
+      const manifest = await window.kitops.kit.inspect(ref, flags, digest)
       setCurrentManifest(manifest)
       return manifest
     } catch (error) {
