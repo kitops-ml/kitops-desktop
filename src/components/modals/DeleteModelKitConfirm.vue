@@ -16,7 +16,7 @@ const emit = defineEmits<{ close: []; confirm: [] }>()
     title="Delete ModelKit"
     confirm-label="Delete"
     danger
-    :long-press="500"
+    :long-press="2000"
     @close="emit('close')"
     @confirm="emit('confirm')">
     <p class="text-gray-01 mb-4">

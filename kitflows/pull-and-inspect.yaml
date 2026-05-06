@@ -9,12 +9,12 @@ vars:
 steps:
   - name: Pull modelkit
     kit.pull:
-      ref: ${ref}
+      path: ${ref}
 
   - name: Show metadata
     kit.info:
-      ref: ${ref}
+      path: ${ref}
 
   - name: Inspect layers
     kit.inspect:
-      ref: ${ref}
+      path: ${ref}

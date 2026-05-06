@@ -44,13 +44,19 @@ useEventListener(document, 'mouseup', () => {
 
 onLongPress(
   confirmButtonRef,
-  () => { },
+  () => {
+    if (!props.longPress || isBusy.value || props.disabled) {
+      return
+    }
+    isBusy.value = true
+    emit('confirm')
+  },
   {
     delay: LONGPRESS_DURATION,
-    onMouseUp(duration, distance, isLongPress) {
+    onMouseUp() {
       isPressing.value = false
 
-      if (props.longPress && !isLongPress) {
+      if (props.longPress) {
         return
       }
 

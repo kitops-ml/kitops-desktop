@@ -89,12 +89,8 @@ function buildInitialOutput(command: string, params?: unknown): string {
     ref = params
   } else if (params && typeof params === 'object') {
     const p = params as Record<string, unknown>
-    ref = String(p.ref ?? p.args ?? '')
-    for (const [key, val] of Object.entries(p)) {
-      if (key !== 'ref' && key !== 'args') {
-        flags.push(`--${key}=${val}`)
-      }
-    }
+    // Positional parameter names match the kitops-ts function signatures
+    ref = String(p.path ?? p.source ?? p.directory ?? p.registry ?? p.reference1 ?? '')
   }
 
   const labels: Record<string, string> = {

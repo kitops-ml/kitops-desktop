@@ -189,11 +189,14 @@ function paramsToFlags(p, exclude) {
   return Object.entries(p)
     .filter(([key]) => !exclude.includes(key))
     .flatMap(([key, val]) => {
+      // Convert camelCase flag names to kebab-case to match the kit CLI
+      // (e.g. tlsVerify → --tls-verify, ignoreExisting → --ignore-existing)
+      const flag = `--${key.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`
       if (val === true || val === 'true') {
-        return [`--${key}`]
+        return [flag]
       }
       if (val === false || val === 'false') {
-        return [`--${key}=false`]
+        return [`${flag}=false`]
       }
       if (val === '' || val === null || val === undefined) {
         return []
@@ -202,15 +205,15 @@ function paramsToFlags(p, exclude) {
         try {
           const parsed = JSON.parse(val)
           if (Array.isArray(parsed)) {
-            return parsed.map(v => `--${key}=${v}`)
+            return parsed.map(v => `${flag}=${v}`)
           }
         } catch { /* not JSON */ }
-        return [`--${key}=${val}`]
+        return [`${flag}=${val}`]
       }
       if (Array.isArray(val)) {
-        return val.map(v => `--${key}=${v}`)
+        return val.map(v => `${flag}=${v}`)
       }
-      return [`--${key}=${val}`]
+      return [`${flag}=${val}`]
     })
 }
 
@@ -239,15 +242,38 @@ function parseFlow(content) {
 
 // ── Kit arg builder ───────────────────────────────────────────────────────────
 
+// Positional parameter names for each kit subcommand, matching the kitops-ts function
+// signatures (from kitops-schema.json). These names are used as YAML keys and are
+// passed as positional CLI args in the order listed.
+//
+// login is the one exception: the kitops-ts signature is login(registry, username, password)
+// but the kit CLI uses --username / --password flags, so only registry is a true positional.
+const KIT_POSITIONALS = {
+  diff:    ['reference1', 'reference2'],
+  info:    ['path'],
+  init:    ['directory'],
+  inspect: ['path'],
+  list:    ['repository'],
+  login:   ['registry'],
+  logout:  ['registry'],
+  pack:    ['directory'],
+  pull:    ['path'],
+  push:    ['source', 'destination'],
+  remove:  ['path'],
+  tag:     ['source', 'destination'],
+  unpack:  ['path'],
+  version: [],
+}
+
 /**
  * Builds the full CLI args array for a kit.* subcommand.
  *
- * Rules:
- *   - 'args'  → positional argument(s); values starting with ./ or ../ are
- *               resolved relative to the workspace root (local paths).
- *   - 'ref'   → positional argument, always passed raw (OCI references).
- *   - all other keys → --key=value flags, passed exactly as written.
- *               Values starting with ./ or ../ are workspace-resolved.
+ * YAML keys use the same names as the kitops-ts function parameters:
+ *   - Positional params (e.g. path, directory, source) → passed as positional CLI args
+ *     in the order defined by KIT_POSITIONALS. Values starting with ./ or ../ are
+ *     resolved relative to the workspace root.
+ *   - Flag params (e.g. tlsVerify, ignoreExisting, tag) → converted to kebab-case CLI
+ *     flags (tlsVerify → --tls-verify). Values starting with ./ or ../ are resolved.
  *
  * @param {string} subcommand - e.g. 'pull', 'pack', 'unpack'
  * @param {Record<string, unknown>} params - Already-interpolated step params
@@ -255,23 +281,17 @@ function parseFlow(content) {
  * @returns {string[]} Args starting with the subcommand, e.g. ['pack', './out', '--tag=repo:v1']
  */
 export function buildKitArgs(subcommand, params, root) {
-  const toArr = v => v === undefined ? [] : Array.isArray(v) ? v : [v]
-
-  // Resolve a value as a workspace-relative path only when it looks like one.
-  // OCI references, boolean flags, and plain strings pass through unchanged.
   const maybeResolve = s => (s.startsWith('./') || s.startsWith('../')) ? tryResolvePath(s, root) : s
 
-  const positionals = [
-    ...toArr(params.args).map(a => maybeResolve(String(a))), // local paths are resolved
-    ...toArr(params.ref).map(a => String(a)),                 // OCI refs — always raw
-  ]
+  const positionalNames = KIT_POSITIONALS[subcommand] ?? []
 
-  const flags = paramsToFlags(params, ['args', 'ref']).map(flag => {
+  const positionals = positionalNames
+    .filter(name => params[name] !== undefined && params[name] !== null && String(params[name]) !== '')
+    .map(name => maybeResolve(String(params[name])))
+
+  const flags = paramsToFlags(params, positionalNames).map(flag => {
     const m = flag.match(/^(--[\w-]+=)(.+)$/)
-    if (m) {
-      return m[1] + maybeResolve(m[2])
-    }
-    return flag
+    return m ? m[1] + maybeResolve(m[2]) : flag
   })
 
   return [subcommand, ...positionals, ...flags]

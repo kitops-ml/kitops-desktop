@@ -17,11 +17,11 @@ steps:
 
   - name: Pull base model
     kit.pull:
-      args: ${base_model_ref}
+      path: ${base_model_ref}
 
   - name: Pull training dataset
     kit.pull:
-      args: ${dataset_ref}
+      path: ${dataset_ref}
 
   # ── 2. Unpack into isolated staging directories ────────────────────────────
   # Each modelkit unpacks to its own directory so Kitfiles do not overwrite
@@ -29,14 +29,14 @@ steps:
 
   - name: Unpack model weights
     kit.unpack:
-      args: ${base_model_ref}
+      path: ${base_model_ref}
       dir: ./workspace/base
       filter:
         - model
 
   - name: Unpack training data
     kit.unpack:
-      args: ${dataset_ref}
+      path: ${dataset_ref}
       dir: ./workspace/dataset
       filter:
         - datasets

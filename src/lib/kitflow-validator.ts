@@ -18,7 +18,9 @@ export interface ValidationError {
   message: string
 }
 
-const POSITIONAL_KEYS = new Set(['ref', 'args'])
+// Positional keys are now the kitops-ts parameter names (e.g. path, directory, source).
+// The old generic 'args' / 'ref' keys are no longer accepted.
+const POSITIONAL_KEYS = new Set<string>([])
 
 function offsetToLine(source: string, offset: number): number {
   let line = 1

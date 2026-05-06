@@ -16,11 +16,11 @@ steps:
 
   - name: Pull version A
     kit.pull:
-      args: ${ref_a}
+      path: ${ref_a}
 
   - name: Pull version B
     kit.pull:
-      args: ${ref_b}
+      path: ${ref_b}
 
   # ── 2. Unpack Kitfiles ────────────────────────────────────────────────────
   # The Kitfile is always extracted regardless of layer filters, so we skip
@@ -28,12 +28,12 @@ steps:
 
   - name: Unpack Kitfile from A
     kit.unpack:
-      args: ${ref_a}
+      path: ${ref_a}
       dir: ./workspace/a
 
   - name: Unpack Kitfile from B
     kit.unpack:
-      args: ${ref_b}
+      path: ${ref_b}
       dir: ./workspace/b
 
   # ── 3. Read metadata from each Kitfile ────────────────────────────────────
@@ -62,9 +62,8 @@ steps:
 
   - name: Diff A vs B
     kit.diff:
-      args:
-        - ${ref_a}
-        - ${ref_b}
+      reference1: ${ref_a}
+      reference2: ${ref_b}
 
   # ── 5. Write comparison report ────────────────────────────────────────────
 

@@ -3,13 +3,11 @@ description: >
   Mirrors a modelkit from one registry to another.
   Use this to synchronize artifacts between environments (dev → staging →
   prod), replicate to an air-gapped or private registry, or back up to a
-  secondary registry. Supports plain HTTP and custom TLS settings for
-  self-hosted registries.
+  secondary registry. Supports custom TLS settings for self-hosted registries.
 
 vars:
   source_ref: ""       # required — e.g. jozu.ml/myorg/my-model:v1.0
   target_ref: ""       # required — e.g. registry.internal/myorg/my-model:v1.0
-  plain_http: false    # set to true for plain HTTP (non-TLS) registries
   tls_verify: true     # set to false to skip TLS verification (self-signed certs)
   remove_source: true  # set to false to keep the source modelkit locally after sync
 
@@ -17,27 +15,24 @@ steps:
 
   - name: Pull from source registry
     kit.pull:
-      args: ${source_ref}
-      plain-http: ${plain_http}
-      tls-verify: ${tls_verify}
+      path: ${source_ref}
+      tlsVerify: ${tls_verify}
 
   - name: Tag for target registry
     kit.tag:
-      args:
-        - ${source_ref}
-        - ${target_ref}
+      source: ${source_ref}
+      destination: ${target_ref}
 
   - name: Inspect before pushing
     kit.info:
-      args: ${target_ref}
+      path: ${target_ref}
 
   - name: Push to target registry
     kit.push:
-      args: ${target_ref}
-      plain-http: ${plain_http}
-      tls-verify: ${tls_verify}
+      source: ${target_ref}
+      tlsVerify: ${tls_verify}
 
   - name: Remove source copy
     when: ${remove_source}
     kit.remove:
-      args: ${source_ref}
+      path: ${source_ref}

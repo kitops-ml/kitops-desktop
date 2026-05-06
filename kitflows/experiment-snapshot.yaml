@@ -33,27 +33,27 @@ steps:
 
   - name: Initialize Kitfile
     kit.init:
-      args: ${experiment_dir}
+      directory: ${experiment_dir}
 
   # ── 3. Pack the experiment ────────────────────────────────────────────────
 
   - name: Pack snapshot
     kit.pack:
-      args: ${experiment_dir}
+      directory: ${experiment_dir}
       tag: ${ref}
 
   # ── 4. Inspect artifact ───────────────────────────────────────────────────
 
   - name: Show snapshot metadata
     kit.info:
-      args: ${ref}
+      path: ${ref}
 
   - name: List layers
     kit.inspect:
-      args: ${ref}
+      path: ${ref}
 
   # ── 5. Push to registry ───────────────────────────────────────────────────
 
   - name: Push snapshot to registry
     kit.push:
-      args: ${ref}
+      source: ${ref}
