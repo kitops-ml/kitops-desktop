@@ -89,7 +89,9 @@ export const useKitStore = defineStore('kit', () => {
   }
 
   async function getKitfile(path: string): Promise<Kitfile> {
-    const [repo, tag] = path.split(':')
+    const lastColonIndex = path.lastIndexOf(':')
+    const repo = lastColonIndex === -1 ? path : path.substring(0, lastColonIndex)
+    const tag = lastColonIndex === -1 ? '<none>' : path.substring(lastColonIndex + 1)
     const found = modelKits.value.find(k => k.repository === repo && k.tag === tag)
     const digest = found?.digest
     const ref = tag === '<none>' && digest ? `${repo}@${digest}` : path
@@ -104,7 +106,9 @@ export const useKitStore = defineStore('kit', () => {
   }
 
   async function getManifest(path: string, flags?: InspectFlags): Promise<Manifest> {
-    const [repo, tag] = path.split(':')
+    const lastColonIndex = path.lastIndexOf(':')
+    const repo = lastColonIndex === -1 ? path : path.substring(0, lastColonIndex)
+    const tag = lastColonIndex === -1 ? '<none>' : path.substring(lastColonIndex + 1)
     const found = modelKits.value.find(k => k.repository === repo && k.tag === tag)
     const digest = found?.digest
     const ref = tag === '<none>' && digest ? `${repo}@${digest}` : path

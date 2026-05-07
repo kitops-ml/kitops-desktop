@@ -160,10 +160,7 @@ All filesystem paths in KitFlow are sandbox-restricted to the workspace root:
 
 1. **Absolute paths are rejected** — any path starting with `/` (Unix) or a drive letter (Windows) throws an error immediately.
 2. **Traversal attacks are rejected** — paths are resolved with `path.join(root, relativePath)` and then checked to ensure the result starts with the workspace root. If it does not (because of `../` components that escape the root), an error is thrown.
-3. **OCI references bypass path resolution** — values passed as `ref` in `kit.*` steps are never path-resolved. This allows OCI references like `jozu.ml/org/model:latest` to pass through unchanged.
-4. **`args` values are conditionally resolved** — only values starting with `./` or `../` are treated as paths and resolved. Other values pass through unchanged.
-
-Flag values in `kit.*` steps are also path-resolved if they start with `./` or `../`, allowing flags like `--dir=./workspace` to resolve correctly.
+3. **Named parameters are conditionally resolved** — only values starting with `./` or `../` in `kit.*` step parameters (e.g., `path`, `dir`, `source`) are treated as filesystem paths and resolved against the workspace root. Other values pass through unchanged, so OCI references like `jozu.ml/org/model:latest` work correctly.
 
 The workspace root is always `dirname(path.resolve(flowFilePath))` — the directory containing the flow YAML file.
 

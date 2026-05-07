@@ -18,10 +18,6 @@ export interface ValidationError {
   message: string
 }
 
-// Positional keys are now the kitops-ts parameter names (e.g. path, directory, source).
-// The old generic 'args' / 'ref' keys are no longer accepted.
-const POSITIONAL_KEYS = new Set<string>([])
-
 function offsetToLine(source: string, offset: number): number {
   let line = 1
   for (let i = 0; i < offset && i < source.length; i++) {
@@ -101,7 +97,7 @@ export function validateKitFlowYaml(source: string): ValidationError[] {
         const paramKeyNode = paramPair.key as Node
         const paramKey = String(paramKeyNode?.toJSON?.() ?? paramKeyNode)
 
-        if (POSITIONAL_KEYS.has(paramKey) || commandSchema.positionals.includes(paramKey)) {
+        if (commandSchema.positionals.includes(paramKey)) {
           continue
         }
 

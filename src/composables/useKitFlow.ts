@@ -271,7 +271,7 @@ export function initUserVars(): void {
       lastDerived.value[v.name] = derived
     }
   }
-  // Rebuild step states now that vars are resolved (expands for loops with real counts)
+  // Rebuild step states now that vars are resolved (interpolates step names with final values)
   stepStates.value = buildStepStates(flow.value.steps, userVars.value)
 }
 

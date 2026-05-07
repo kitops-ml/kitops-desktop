@@ -64,7 +64,7 @@ Extend the flow by adding steps to the `steps` list:
 steps:
   - name: Pull modelkit
     kit.pull:
-      ref: ${model_ref}
+      path: ${model_ref}
 
   - name: Unpack to workspace
     kit.unpack:
