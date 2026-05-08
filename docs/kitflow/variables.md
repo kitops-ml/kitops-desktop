@@ -86,6 +86,30 @@ steps:
 
 If a variable name in `${...}` does not exist in `vars`, the placeholder is left unchanged in the output. This is intentional — it makes missing variables visible rather than silently discarding them.
 
+## Built-in Constants
+
+A small set of names are reserved by the runner and resolved automatically — no declaration needed. They are evaluated once when the flow starts, so every step in the same run sees the same value.
+
+| Name | Format | Example |
+|---|---|---|
+| `TODAY` | `yyyy-mm-dd` | `2026-05-08` |
+| `NOW` | `yyyy-mm-dd hh:mm:ss` | `2026-05-08 14:30:00` |
+
+```yaml
+steps:
+  - name: Tag with today's date
+    kit.tag:
+      source: ${repository}:${tag}
+      destination: ${repository}:${TODAY}
+
+  - name: Write snapshot metadata
+    write:
+      path: ./output/snapshot.txt
+      content: "Packed at: ${NOW}"
+```
+
+User-defined vars take precedence — if you declare `TODAY` or `NOW` in `vars`, your value is used instead of the built-in.
+
 ## String Filters
 
 Filters transform a variable's value at interpolation time. They are applied inline with a pipe `|` inside the `${}` expression. Multiple filters can be chained.
@@ -223,4 +247,23 @@ vars:
   source_ref: ""
   dest_registry: registry.example.com
   dest_ref: "${dest_registry}/${source_ref | strip-tag | after '/'}"
+```
+
+### Date-stamped tag using a built-in constant
+
+```yaml
+vars:
+  repository: ""
+  tag: latest
+
+steps:
+  - name: Pack modelkit
+    kit.pack:
+      directory: ./workspace
+      tag: ${repository}:${tag}
+
+  - name: Tag with today's date
+    kit.tag:
+      source: ${repository}:${tag}
+      destination: ${repository}:${TODAY}
 ```
