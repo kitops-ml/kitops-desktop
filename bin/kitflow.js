@@ -42,6 +42,16 @@ function c(code, text) {
   return isTTY ? `${code}${text}${ansi.reset}` : text
 }
 
+// ── Built-in constants ────────────────────────────────────────────────────────
+// Computed once at startup so every step in the same run sees the same value.
+// User-defined vars with the same name take precedence.
+
+const _runStart = new Date()
+const BUILTINS = {
+  TODAY: _runStart.toISOString().slice(0, 10),       // yyyy-mm-dd
+  NOW:   _runStart.toISOString().slice(0, 19).replace('T', ' '), // yyyy-mm-dd hh:mm:ss
+}
+
 // ── Filters & interpolation ───────────────────────────────────────────────────
 
 function applyFilter(value, filterStr) {
@@ -79,10 +89,11 @@ export function interpolate(value, vars) {
     const parts = expr.split('|').map(s => s.trim())
     const name = parts[0]
     const filters = parts.slice(1)
-    if (!(name in vars)) {
+    const resolved = name in vars ? vars[name] : BUILTINS[name]
+    if (resolved === undefined) {
       return match
     }
-    return filters.reduce((v, f) => applyFilter(v, f), vars[name])
+    return filters.reduce((v, f) => applyFilter(v, f), resolved)
   })
 }
 
