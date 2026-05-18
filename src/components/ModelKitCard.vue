@@ -26,6 +26,15 @@ const emit = defineEmits<{
 
 // Check if ModelKit can be individually deleted
 // ModelKits with <none> repository can only be removed via Prune
+const displayName = computed(() => {
+  if (props.modelkit.name && props.modelkit.name !== '<none>') {
+    return { value: props.modelkit.name, derived: false }
+  }
+  const segments = props.modelkit.repository?.split('/')
+  const repoSegment = segments?.[segments.length - 1]
+  return { value: repoSegment || props.modelkit.repository || '<none>', derived: Boolean(repoSegment) }
+})
+
 const canDelete = computed(() => {
   const hasValidRepository = props.modelkit.repository && props.modelkit.repository !== '<none>'
   const hasValidTagOrDigest = (props.modelkit.tag && props.modelkit.tag !== '<none>') || props.modelkit.digest
@@ -67,7 +76,12 @@ function onTag(modelkit: ModelKit) {
         <IconModelKit class="size-6" />
       </div>
       <div class="flex-1 min-w-0">
-        <h3 class="text-lg font-bold mb-1 truncate group-hover:text-gold leading-none">{{ modelkit.name }}</h3>
+        <h3
+          class="text-lg font-bold mb-1 truncate group-hover:text-gold leading-none"
+          :class="displayName.derived ? 'italic text-gray-01' : ''"
+          :title="displayName.derived ? 'No package name set — showing repository name' : undefined">
+          {{ displayName.value }}
+        </h3>
         <span
           class="inline-flex items-center gap-1 text-gray-01 text-xs font-mono"
           title="Tag">

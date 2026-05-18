@@ -53,7 +53,7 @@ export function register(ipcMain) {
   )
 
   ipcMain.handle('kit:removeAll', (e, force = false) =>
-    withLogging('remove --all', { force }, () => kitops.removeAll({ force })),
+    withLogging('remove --all', { force }, () => kitops.remove('', { all: true, ...(force ? { force: true } : {}) })),
   )
 
   ipcMain.handle('kit:login', (e, registry, username, password, flags) =>

@@ -148,7 +148,7 @@ export const useKitStore = defineStore('kit', () => {
     try {
       // Some registry might require specific TLS flags, so find the most specific registry matching the reference, if any.
       const registry = registries.value.find(r => reference.startsWith(r.url))
-      const result = await window.kitops.kit.pull({ reference }, registry?.flags ? { ...registry.flags } : undefined)
+      const result = await window.kitops.kit.pull({ reference, flags: registry?.flags ? { ...registry.flags } : undefined })
       await fetchModelKits()
       return result
     } catch (error) {
