@@ -150,6 +150,9 @@ function openPackModal(event: Event, draft: UnpackedKitfile) {
 }
 
 function closePackModal() {
+  if (draftStore.packing !== null) {
+    window.kitops.kit.cancelOperation()
+  }
   showPackModal.value = false
   selectedDraft.value = null
   packError.value = null
@@ -170,6 +173,9 @@ async function confirmPack(form: { registry: string; repository: string; tag: st
     await kitStore.fetchModelKits()
     closePackModal()
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return
+    }
     const message = error instanceof Error ? error.message : 'Failed to pack kitfile'
     packError.value = cleanIpcError(message)
   }

@@ -36,6 +36,9 @@ function openPullModal(prefill?: string) {
 }
 
 function closePullModal() {
+  if (pulling.value) {
+    window.kitops.kit.cancelOperation()
+  }
   showPullModal.value = false
   pullError.value = null
   pullPrefill.value = undefined
@@ -53,6 +56,9 @@ async function confirmPull(reference: string) {
     notification.success(`Pulled ${reference} successfully`)
     router.push({ name: 'modelkit-detail', params: { repository: repo, tag } })
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return
+    }
     const message = error instanceof Error ? error.message : 'Failed to pull ModelKit'
     pullError.value = cleanIpcError(message)
   } finally {

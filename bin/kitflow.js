@@ -19,6 +19,14 @@ import { createInterface } from 'readline'
 import { fileURLToPath } from 'url'
 import { parse as parseYaml } from 'yaml'
 
+// Tracks the currently-running kit CancellablePromise so SIGTERM can cancel it.
+let activeKitOp = null
+
+process.on('SIGTERM', () => {
+  activeKitOp?.cancel()
+  process.exit(0)
+})
+
 // import.meta.url is undefined when kitflow.js is bundled to CJS for the
 // standalone binary. In that case the guard below is irrelevant (the bundle
 // entry calls main() directly), so an empty string is a safe fallback.
@@ -244,12 +252,17 @@ async function executeStep(command, params, vars, root, onProgress) {
 
   async function runKit(args) {
     const [subcommand, ...rest] = args
-    const result = await kitops.kit(subcommand, rest)
-    const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim()
-    if (output) {
-      onProgress?.(output)
+    activeKitOp = kitops.kit(subcommand, rest)
+    try {
+      const result = await activeKitOp
+      const output = [result.stdout, result.stderr].filter(Boolean).join('\n').trim()
+      if (output) {
+        onProgress?.(output)
+      }
+      return output || 'Done'
+    } finally {
+      activeKitOp = null
     }
-    return output || 'Done'
   }
 
   switch (command) {

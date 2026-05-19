@@ -2,6 +2,8 @@ import * as kitops from '@kitops/kitops-ts'
 
 import { withLogging } from '../logging.js'
 
+let activeOperation = null
+
 export function register(ipcMain) {
   ipcMain.handle('kit:version', () => withLogging('version', null, kitops.version))
 
@@ -26,27 +28,48 @@ export function register(ipcMain) {
     withLogging('inspect', { path, flags }, () => kitops.inspect(path, flags), modelkitDigest),
   )
 
-  ipcMain.handle('kit:push', (e, source, destination, flags, modelkitDigest) =>
-    withLogging('push', { source, destination, flags }, () => kitops.push(source, destination || undefined, flags), modelkitDigest),
-  )
+  ipcMain.handle('kit:push', (e, source, destination, flags, modelkitDigest) => {
+    activeOperation = kitops.push(source, destination || undefined, flags)
+    return withLogging('push', { source, destination, flags }, () => activeOperation, modelkitDigest)
+      .finally(() => {
+        activeOperation = null 
+      })
+  })
 
   ipcMain.handle('kit:pull', (e, options) => {
     const reference = typeof options === 'string' ? options : options.reference
     const flags = typeof options === 'string' ? undefined : options.flags
-    return withLogging('pull', { reference, flags }, () => kitops.pull(reference, flags))
+    activeOperation = kitops.pull(reference, flags)
+    return withLogging('pull', { reference, flags }, () => activeOperation)
+      .finally(() => {
+        activeOperation = null 
+      })
   })
 
   ipcMain.handle('kit:info', (e, path, flags, modelkitDigest) => {
     return withLogging('info', { path, flags }, () => kitops.info(path, flags), modelkitDigest)
   })
 
-  ipcMain.handle('kit:unpack', (e, path, flags, modelkitDigest) =>
-    withLogging('unpack', { path, flags }, () => kitops.unpack(path, flags), modelkitDigest),
-  )
+  ipcMain.handle('kit:unpack', (e, path, flags, modelkitDigest) => {
+    activeOperation = kitops.unpack(path, flags)
+    return withLogging('unpack', { path, flags }, () => activeOperation, modelkitDigest)
+      .finally(() => {
+        activeOperation = null 
+      })
+  })
 
-  ipcMain.handle('kit:pack', (e, directory, flags) =>
-    withLogging('pack', { directory, flags }, () => kitops.pack(directory, flags)),
-  )
+  ipcMain.handle('kit:pack', (e, directory, flags) => {
+    activeOperation = kitops.pack(directory, flags)
+    return withLogging('pack', { directory, flags }, () => activeOperation)
+      .finally(() => {
+        activeOperation = null 
+      })
+  })
+
+  ipcMain.handle('kit:stop', () => {
+    activeOperation?.cancel()
+    activeOperation = null
+  })
 
   ipcMain.handle('kit:remove', (e, path, flags = {}, modelkitDigest) =>
     withLogging('remove', { path, flags }, () => kitops.remove(path, flags), modelkitDigest),

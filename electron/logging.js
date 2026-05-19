@@ -54,6 +54,9 @@ export async function withLogging(commandName, args, fn, modelkitDigest) {
 
     return result
   } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw error
+    }
     const duration = Date.now() - startTime
     const errorMessage = error.message || String(error)
 

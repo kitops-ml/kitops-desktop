@@ -212,6 +212,9 @@ function openPushConfirmModal(destPath: string) {
 }
 
 function closePushConfirmModal() {
+  if (pushing.value !== null) {
+    window.kitops.kit.cancelOperation()
+  }
   showPushConfirmModal.value = false
   pushConfirmDestPath.value = ''
 }
@@ -241,6 +244,9 @@ async function confirmPush(destination: string): Promise<void> {
     router.push({ name: 'modelkit-detail', params: { repository: destRepo, tag: destTag } })
   } catch (err) {
     closePushConfirmModal()
+    if (err instanceof Error && err.name === 'AbortError') {
+      return
+    }
     const message = err instanceof Error ? err.message : 'Failed to push modelkit'
     alert(cleanIpcError(message))
   }

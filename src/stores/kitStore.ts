@@ -137,7 +137,9 @@ export const useKitStore = defineStore('kit', () => {
       const digest = modelKits.value.find(k => `${k.repository}:${k.tag}` === source)?.digest
       return await window.kitops.kit.push(pushRef, undefined, flags, digest)
     } catch (error) {
-      logStore.logError('Failed to push modelkit', error)
+      if (!(error instanceof Error && error.name === 'AbortError')) {
+        logStore.logError('Failed to push modelkit', error as Record<string, unknown>)
+      }
       throw error
     } finally {
       pushing.value = null
@@ -152,7 +154,9 @@ export const useKitStore = defineStore('kit', () => {
       await fetchModelKits()
       return result
     } catch (error) {
-      logStore.logError('Failed to pull modelkit', error)
+      if (!(error instanceof Error && error.name === 'AbortError')) {
+        logStore.logError('Failed to pull modelkit', error as Record<string, unknown>)
+      }
       throw error
     }
   }

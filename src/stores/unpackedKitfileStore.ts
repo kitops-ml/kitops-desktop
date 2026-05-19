@@ -120,7 +120,9 @@ export const useUnpackedKitfileStore = defineStore('unpackedKitfiles', () => {
 
       return { success: true }
     } catch (error) {
-      logStore.logError('Failed to pack unpacked kitfile', error)
+      if (!(error instanceof Error && error.name === 'AbortError')) {
+        logStore.logError('Failed to pack unpacked kitfile', error as Record<string, unknown>)
+      }
       throw error
     } finally {
       packing.value = null
