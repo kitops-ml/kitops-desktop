@@ -18,8 +18,6 @@ export interface ValidationError {
   message: string
 }
 
-const POSITIONAL_KEYS = new Set(['ref', 'args'])
-
 function offsetToLine(source: string, offset: number): number {
   let line = 1
   for (let i = 0; i < offset && i < source.length; i++) {
@@ -99,7 +97,7 @@ export function validateKitFlowYaml(source: string): ValidationError[] {
         const paramKeyNode = paramPair.key as Node
         const paramKey = String(paramKeyNode?.toJSON?.() ?? paramKeyNode)
 
-        if (POSITIONAL_KEYS.has(paramKey) || commandSchema.positionals.includes(paramKey)) {
+        if (commandSchema.positionals.includes(paramKey)) {
           continue
         }
 

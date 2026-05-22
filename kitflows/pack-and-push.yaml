@@ -10,13 +10,13 @@ vars:
 steps:
   - name: Pack modelkit
     kit.pack:
-      args: ${source_dir}
+      directory: ${source_dir}
       tag: ${ref}
 
   - name: Inspect before pushing
     kit.info:
-      args: ${ref}
+      path: ${ref}
 
   - name: Push to registry
     kit.push:
-      args: ${ref}
+      source: ${ref}

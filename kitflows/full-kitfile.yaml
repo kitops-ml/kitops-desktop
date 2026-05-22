@@ -140,10 +140,10 @@ steps:
 
   - name: Pack Modelkit
     kit.pack:
-      args: ${output_dir}
+      directory: ${output_dir}
       tag: ${repository}:${tag}
 
   - name: Inspect the result Kitfile
     # Sanity check — confirms layers and digest
     kit.info:
-      ref: ${repository}:${tag}
+      path: ${repository}:${tag}

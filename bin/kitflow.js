@@ -42,6 +42,16 @@ function c(code, text) {
   return isTTY ? `${code}${text}${ansi.reset}` : text
 }
 
+// ── Built-in constants ────────────────────────────────────────────────────────
+// Computed once at startup so every step in the same run sees the same value.
+// User-defined vars with the same name take precedence.
+
+const _runStart = new Date()
+const BUILTINS = {
+  TODAY: _runStart.toISOString().slice(0, 10),       // yyyy-mm-dd
+  NOW:   _runStart.toISOString().slice(0, 19).replace('T', ' '), // yyyy-mm-dd hh:mm:ss
+}
+
 // ── Filters & interpolation ───────────────────────────────────────────────────
 
 function applyFilter(value, filterStr) {
@@ -79,10 +89,11 @@ export function interpolate(value, vars) {
     const parts = expr.split('|').map(s => s.trim())
     const name = parts[0]
     const filters = parts.slice(1)
-    if (!(name in vars)) {
+    const resolved = name in vars ? vars[name] : BUILTINS[name]
+    if (resolved === undefined) {
       return match
     }
-    return filters.reduce((v, f) => applyFilter(v, f), vars[name])
+    return filters.reduce((v, f) => applyFilter(v, f), resolved)
   })
 }
 
@@ -132,6 +143,46 @@ function getNestedValue(obj, dotPath) {
   }, obj)
 }
 
+// ── Loop expansion ────────────────────────────────────────────────────────────
+
+/**
+ * Flattens `for` loop steps into concrete steps using the resolved vars.
+ * Must be called after vars are collected so `count` expressions can be evaluated.
+ *
+ * Syntax:
+ *   - name: Optional group label
+ *     for:
+ *       var: i          # loop variable name, available as ${i} in nested steps
+ *       count: "10"     # iterations (1-based); can reference a var: "${n}"
+ *       steps:
+ *         - name: Step ${i}
+ *           write: ...
+ */
+export function expandSteps(steps, vars) {
+  const flat = []
+  for (const step of steps) {
+    const forDef = step.for
+    if (forDef !== null && forDef !== undefined && typeof forDef === 'object' && !Array.isArray(forDef)) {
+      const count = Math.max(0, parseInt(interpolate(String(forDef.count ?? '0'), vars), 10))
+      const varName = String(forDef.var ?? 'i')
+      const loopSteps = Array.isArray(forDef.steps) ? forDef.steps : []
+      const baseName = step.name ?? 'Loop'
+      for (let iter = 1; iter <= count; iter++) {
+        const iterVars = { ...vars, [varName]: String(iter) }
+        for (const loopStep of loopSteps) {
+          const name = loopStep.name
+            ? interpolate(String(loopStep.name), iterVars)
+            : `${baseName} ${iter}`
+          flat.push({ ...loopStep, name, _loopVar: varName, _loopVal: String(iter) })
+        }
+      }
+    } else {
+      flat.push(step)
+    }
+  }
+  return flat
+}
+
 // ── Flow parsing ──────────────────────────────────────────────────────────────
 
 const KNOWN_FILESYSTEM_COMMANDS = new Set(['mkdir', 'write', 'copy', 'move', 'read', 'echo', 'run'])
@@ -149,11 +200,14 @@ function paramsToFlags(p, exclude) {
   return Object.entries(p)
     .filter(([key]) => !exclude.includes(key))
     .flatMap(([key, val]) => {
+      // Convert camelCase flag names to kebab-case to match the kit CLI
+      // (e.g. tlsVerify → --tls-verify, ignoreExisting → --ignore-existing)
+      const flag = `--${key.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()}`
       if (val === true || val === 'true') {
-        return [`--${key}`]
+        return [flag]
       }
       if (val === false || val === 'false') {
-        return [`--${key}=false`]
+        return [`${flag}=false`]
       }
       if (val === '' || val === null || val === undefined) {
         return []
@@ -162,15 +216,15 @@ function paramsToFlags(p, exclude) {
         try {
           const parsed = JSON.parse(val)
           if (Array.isArray(parsed)) {
-            return parsed.map(v => `--${key}=${v}`)
+            return parsed.map(v => `${flag}=${v}`)
           }
         } catch { /* not JSON */ }
-        return [`--${key}=${val}`]
+        return [`${flag}=${val}`]
       }
       if (Array.isArray(val)) {
-        return val.map(v => `--${key}=${v}`)
+        return val.map(v => `${flag}=${v}`)
       }
-      return [`--${key}=${val}`]
+      return [`${flag}=${val}`]
     })
 }
 
@@ -199,15 +253,38 @@ function parseFlow(content) {
 
 // ── Kit arg builder ───────────────────────────────────────────────────────────
 
+// Positional parameter names for each kit subcommand, matching the kitops-ts function
+// signatures (from kitops-schema.json). These names are used as YAML keys and are
+// passed as positional CLI args in the order listed.
+//
+// login is the one exception: the kitops-ts signature is login(registry, username, password)
+// but the kit CLI uses --username / --password flags, so only registry is a true positional.
+const KIT_POSITIONALS = {
+  diff:    ['reference1', 'reference2'],
+  info:    ['path'],
+  init:    ['directory'],
+  inspect: ['path'],
+  list:    ['repository'],
+  login:   ['registry'],
+  logout:  ['registry'],
+  pack:    ['directory'],
+  pull:    ['path'],
+  push:    ['source', 'destination'],
+  remove:  ['path'],
+  tag:     ['source', 'destination'],
+  unpack:  ['path'],
+  version: [],
+}
+
 /**
  * Builds the full CLI args array for a kit.* subcommand.
  *
- * Rules:
- *   - 'args'  → positional argument(s); values starting with ./ or ../ are
- *               resolved relative to the workspace root (local paths).
- *   - 'ref'   → positional argument, always passed raw (OCI references).
- *   - all other keys → --key=value flags, passed exactly as written.
- *               Values starting with ./ or ../ are workspace-resolved.
+ * YAML keys use the same names as the kitops-ts function parameters:
+ *   - Positional params (e.g. path, directory, source) → passed as positional CLI args
+ *     in the order defined by KIT_POSITIONALS. Values starting with ./ or ../ are
+ *     resolved relative to the workspace root.
+ *   - Flag params (e.g. tlsVerify, ignoreExisting, tag) → converted to kebab-case CLI
+ *     flags (tlsVerify → --tls-verify). Values starting with ./ or ../ are resolved.
  *
  * @param {string} subcommand - e.g. 'pull', 'pack', 'unpack'
  * @param {Record<string, unknown>} params - Already-interpolated step params
@@ -215,23 +292,17 @@ function parseFlow(content) {
  * @returns {string[]} Args starting with the subcommand, e.g. ['pack', './out', '--tag=repo:v1']
  */
 export function buildKitArgs(subcommand, params, root) {
-  const toArr = v => v === undefined ? [] : Array.isArray(v) ? v : [v]
-
-  // Resolve a value as a workspace-relative path only when it looks like one.
-  // OCI references, boolean flags, and plain strings pass through unchanged.
   const maybeResolve = s => (s.startsWith('./') || s.startsWith('../')) ? tryResolvePath(s, root) : s
 
-  const positionals = [
-    ...toArr(params.args).map(a => maybeResolve(String(a))), // local paths are resolved
-    ...toArr(params.ref).map(a => String(a)),                 // OCI refs — always raw
-  ]
+  const positionalNames = KIT_POSITIONALS[subcommand] ?? []
 
-  const flags = paramsToFlags(params, ['args', 'ref']).map(flag => {
+  const positionals = positionalNames
+    .filter(name => params[name] !== undefined && params[name] !== null && String(params[name]) !== '')
+    .map(name => maybeResolve(String(params[name])))
+
+  const flags = paramsToFlags(params, positionalNames).map(flag => {
     const m = flag.match(/^(--[\w-]+=)(.+)$/)
-    if (m) {
-      return m[1] + maybeResolve(m[2])
-    }
-    return flag
+    return m ? m[1] + maybeResolve(m[2]) : flag
   })
 
   return [subcommand, ...positionals, ...flags]
@@ -520,23 +591,27 @@ export async function main() {
     if (flow.description) {
       console.log(c(ansi.gray, flow.description.trim()))
     }
-    console.log(c(ansi.gray, `${flow.steps.length} step${flow.steps.length !== 1 ? 's' : ''} · workspace: ${workspaceRoot}`))
+    console.log(c(ansi.gray, `workspace: ${workspaceRoot}`))
   }
 
   // collect variables
   const vars = await collectVars(flow.varDefs, cliVars, jsonMode)
 
   if (!jsonMode) {
+    console.log(c(ansi.gray, `${flow.steps.length} step${flow.steps.length !== 1 ? 's' : ''}`))
     console.log()
   }
 
-  // run steps
+  // run steps — for-loop steps execute as a single atomic step; each iteration's
+  // result is streamed as step-output so the UI groups them under one entry.
   let exitCode = 0
 
   for (let i = 0; i < flow.steps.length; i++) {
     const step = flow.steps[i]
-    const name = step.name ?? `Step ${i + 1}`
-    const command = detectCommand(step)
+    const name = step.name ? interpolate(String(step.name), vars) : `Step ${i + 1}`
+    const forDef = step.for
+    const isForStep = forDef !== null && forDef !== undefined && typeof forDef === 'object' && !Array.isArray(forDef)
+    const command = isForStep ? 'for' : detectCommand(step)
 
     if (!command) {
       if (jsonMode) {
@@ -547,7 +622,7 @@ export async function main() {
       }
       exitCode = 1
       for (let j = i + 1; j < flow.steps.length; j++) {
-        const skipName = flow.steps[j].name ?? `Step ${j + 1}`
+        const skipName = flow.steps[j].name ? interpolate(String(flow.steps[j].name), vars) : `Step ${j + 1}`
         if (jsonMode) {
           process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
         } else {
@@ -570,70 +645,164 @@ export async function main() {
       }
     }
 
-    if (jsonMode) {
-      process.stdout.write(JSON.stringify({ type: 'step-start', index: i, name, command, params: interpolateDeep(step[command] ?? {}, vars) }) + '\n')
-    } else if (isTTY) {
-      process.stdout.write(`  ${c(ansi.yellow, '●')} ${name}…`)
-    }
+    if (isForStep) {
+      const count = Math.max(0, parseInt(interpolate(String(forDef.count ?? '0'), vars), 10))
+      const varName = String(forDef.var ?? 'i')
+      const loopSteps = Array.isArray(forDef.steps) ? forDef.steps : []
 
-    const start = Date.now()
+      if (jsonMode) {
+        process.stdout.write(JSON.stringify({ type: 'step-start', index: i, name, command: 'for', params: { var: varName, count } }) + '\n')
+      } else if (isTTY) {
+        process.stdout.write(`  ${c(ansi.yellow, '●')} ${name}…`)
+      }
 
-    try {
-      const output = await executeStep(
-        command,
-        step[command],
-        vars,
-        workspaceRoot,
-        (line) => {
-          if (jsonMode) {
-            process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line }) + '\n')
-          } else if (isTTY) {
-            process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, line.split('\n').at(-1) ?? '')}          `)
+      const start = Date.now()
+      let loopFailed = false
+      let loopError = ''
+      const stepOutputs = []
+
+      outer: for (let iter = 1; iter <= count; iter++) {
+        vars[varName] = String(iter)
+        for (const loopStep of loopSteps) {
+          const innerName = loopStep.name ? interpolate(String(loopStep.name), vars) : `${name} ${iter}`
+          const innerCommand = detectCommand(loopStep)
+          if (!innerCommand) {
+            loopFailed = true
+            loopError = `No recognized command in inner step: ${innerName}`
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line: `✗ ${loopError}` }) + '\n')
+            }
+            break outer
           }
-        },
-      )
+          try {
+            const output = await executeStep(innerCommand, loopStep[innerCommand], vars, workspaceRoot, (line) => {
+              if (jsonMode) {
+                process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line }) + '\n')
+              } else if (isTTY) {
+                process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, line.split('\n').at(-1) ?? '')}          `)
+              }
+            })
+            const resultLine = `${innerName}: ${output}`
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line: resultLine }) + '\n')
+            } else if (isTTY) {
+              process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, resultLine.split('\n').at(-1) ?? '')}          `)
+            } else {
+              stepOutputs.push(resultLine)
+            }
+          } catch (e) {
+            loopFailed = true
+            loopError = `${innerName}: ${e instanceof Error ? e.message : String(e)}`
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line: `✗ ${loopError}` }) + '\n')
+            }
+            break outer
+          }
+        }
+      }
 
       const duration = Date.now() - start
 
-      if (jsonMode) {
-        process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'success', duration, output }) + '\n')
-      } else {
-        if (isTTY) {
-          process.stdout.write('\r')
+      if (loopFailed) {
+        if (jsonMode) {
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'error', duration, error: loopError }) + '\n')
+        } else {
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.red, '✗')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
+          console.error(`     ${c(ansi.red, loopError)}`)
         }
-        console.log(`  ${c(ansi.green, '✓')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
-        if (output && output !== 'Done') {
-          for (const line of output.trim().split('\n')) {
+        for (let j = i + 1; j < flow.steps.length; j++) {
+          const skipName = flow.steps[j].name ? interpolate(String(flow.steps[j].name), vars) : `Step ${j + 1}`
+          if (jsonMode) {
+            process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
+          } else {
+            console.log(`  ${c(ansi.gray, '—')} ${c(ansi.dim, skipName)} ${c(ansi.gray, '(skipped)')}`)
+          }
+        }
+        exitCode = 1
+        break
+      } else {
+        // step-done without output field so accumulated step-output lines are preserved in UI
+        if (jsonMode) {
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'success', duration }) + '\n')
+        } else {
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.green, '✓')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)} ${c(ansi.gray, `[${count} × ${loopSteps.length}]`)}`)
+          for (const line of stepOutputs) {
             console.log(`     ${c(ansi.gray, line)}`)
           }
         }
       }
-    } catch (e) {
-      const duration = Date.now() - start
-
+    } else {
       if (jsonMode) {
-        const error = e instanceof Error ? e.message : String(e)
-        process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'error', duration, error }) + '\n')
-      } else {
-        const errorMsg = e instanceof Error ? e.message : String(e)
-        if (isTTY) {
-          process.stdout.write('\r')
-        }
-        console.log(`  ${c(ansi.red, '✗')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
-        console.error(`     ${c(ansi.red, errorMsg)}`)
+        process.stdout.write(JSON.stringify({ type: 'step-start', index: i, name, command, params: interpolateDeep(step[command] ?? {}, vars) }) + '\n')
+      } else if (isTTY) {
+        process.stdout.write(`  ${c(ansi.yellow, '●')} ${name}…`)
       }
 
-      for (let j = i + 1; j < flow.steps.length; j++) {
-        const skipName = flow.steps[j].name ?? `Step ${j + 1}`
+      const start = Date.now()
+
+      try {
+        const output = await executeStep(
+          command,
+          step[command],
+          vars,
+          workspaceRoot,
+          (line) => {
+            if (jsonMode) {
+              process.stdout.write(JSON.stringify({ type: 'step-output', index: i, line }) + '\n')
+            } else if (isTTY) {
+              process.stdout.write(`\r  ${c(ansi.yellow, '●')} ${name}… ${c(ansi.gray, line.split('\n').at(-1) ?? '')}          `)
+            }
+          },
+        )
+
+        const duration = Date.now() - start
+
         if (jsonMode) {
-          process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'success', duration, output }) + '\n')
         } else {
-          console.log(`  ${c(ansi.gray, '—')} ${c(ansi.dim, skipName)} ${c(ansi.gray, '(skipped)')}`)
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.green, '✓')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
+          if (output && output !== 'Done') {
+            for (const line of output.trim().split('\n')) {
+              console.log(`     ${c(ansi.gray, line)}`)
+            }
+          }
         }
-      }
+      } catch (e) {
+        const duration = Date.now() - start
 
-      exitCode = 1
-      break
+        if (jsonMode) {
+          const error = e instanceof Error ? e.message : String(e)
+          process.stdout.write(JSON.stringify({ type: 'step-done', index: i, status: 'error', duration, error }) + '\n')
+        } else {
+          const errorMsg = e instanceof Error ? e.message : String(e)
+          if (isTTY) {
+            process.stdout.write('\r')
+          }
+          console.log(`  ${c(ansi.red, '✗')} ${name} ${c(ansi.gray, `(${(duration / 1000).toFixed(1)}s)`)}`)
+          console.error(`     ${c(ansi.red, errorMsg)}`)
+        }
+
+        for (let j = i + 1; j < flow.steps.length; j++) {
+          const skipName = flow.steps[j].name ? interpolate(String(flow.steps[j].name), vars) : `Step ${j + 1}`
+          if (jsonMode) {
+            process.stdout.write(JSON.stringify({ type: 'step-done', index: j, status: 'skipped' }) + '\n')
+          } else {
+            console.log(`  ${c(ansi.gray, '—')} ${c(ansi.dim, skipName)} ${c(ansi.gray, '(skipped)')}`)
+          }
+        }
+
+        exitCode = 1
+        break
+      }
     }
   }
 

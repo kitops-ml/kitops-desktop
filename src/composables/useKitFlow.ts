@@ -89,12 +89,8 @@ function buildInitialOutput(command: string, params?: unknown): string {
     ref = params
   } else if (params && typeof params === 'object') {
     const p = params as Record<string, unknown>
-    ref = String(p.ref ?? p.args ?? '')
-    for (const [key, val] of Object.entries(p)) {
-      if (key !== 'ref' && key !== 'args') {
-        flags.push(`--${key}=${val}`)
-      }
-    }
+    // Positional parameter names match the kitops-ts function signatures
+    ref = String(p.path ?? p.source ?? p.directory ?? p.registry ?? p.reference1 ?? '')
   }
 
   const labels: Record<string, string> = {
@@ -161,16 +157,23 @@ function detectCommand(step: RawStep): string | null {
   return null
 }
 
-function buildStepStates(steps: RawStep[]): StepState[] {
-  return steps.map((step, index) => ({
-    index,
-    name: step.name ?? `Step ${index + 1}`,
-    command: detectCommand(step) ?? 'unknown',
-    status: 'pending' as StepStatus,
-    output: '',
-    error: null,
-    duration: null,
-  }))
+function buildStepStates(steps: RawStep[], vars: Record<string, string> = {}): StepState[] {
+  return steps.map((step, index) => {
+    const rawName = step.name ? String(step.name) : `Step ${index + 1}`
+    const name = interpolate(rawName, vars)
+    const forDef = step.for
+    const isForStep = forDef !== null && forDef !== undefined && typeof forDef === 'object' && !Array.isArray(forDef)
+    const command = isForStep ? 'for' : (detectCommand(step) ?? 'unknown')
+    return {
+      index,
+      name,
+      command,
+      status: 'pending' as StepStatus,
+      output: '',
+      error: null,
+      duration: null,
+    }
+  })
 }
 
 const importedFlows = ref<ImportedFlow[]>(readLibrary())
@@ -268,6 +271,8 @@ export function initUserVars(): void {
       lastDerived.value[v.name] = derived
     }
   }
+  // Rebuild step states now that vars are resolved (interpolates step names with final values)
+  stepStates.value = buildStepStates(flow.value.steps, userVars.value)
 }
 
 export async function loadFlow(flowPath: string): Promise<boolean> {
@@ -310,7 +315,20 @@ export async function loadFlow(flowPath: string): Promise<boolean> {
     varDefs,
     steps: (raw.steps as RawStep[]) ?? [],
   }
-  stepStates.value = buildStepStates(flow.value.steps)
+
+  // Resolve defaults so for-loop counts can be evaluated at load time
+  const initialVars: Record<string, string> = {}
+  for (const def of varDefs) {
+    if (!def.isDerived && def.default !== undefined) {
+      initialVars[def.name] = def.default
+    }
+  }
+  for (const def of varDefs) {
+    if (def.isDerived && def.default) {
+      initialVars[def.name] = interpolate(def.default, initialVars)
+    }
+  }
+  stepStates.value = buildStepStates(flow.value.steps, initialVars)
 
   validationErrors.value = validateKitFlowYaml(fileResult.content)
   // Switch to raw view so the user sees the highlighted errors immediately
@@ -476,7 +494,7 @@ function reset(): void {
   if (!flow.value) {
     return
   }
-  stepStates.value = buildStepStates(flow.value.steps)
+  stepStates.value = buildStepStates(flow.value.steps, userVars.value)
   expandedSteps.value = new Set()
 }
 

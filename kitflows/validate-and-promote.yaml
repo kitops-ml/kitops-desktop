@@ -24,7 +24,7 @@ steps:
 
   - name: Login to production registry
     kit.login:
-      args: ${prod_registry}
+      registry: ${prod_registry}
       username: ${prod_username}
       password: ${prod_password}
 
@@ -32,17 +32,17 @@ steps:
 
   - name: Pull promotion candidate
     kit.pull:
-      args: ${candidate_ref}
+      path: ${candidate_ref}
 
   - name: Pull current production modelkit
     kit.pull:
-      args: ${current_prod_ref}
+      path: ${current_prod_ref}
 
   # ── 3. Inspect candidate ──────────────────────────────────────────────────
 
   - name: Inspect candidate
     kit.info:
-      args: ${candidate_ref}
+      path: ${candidate_ref}
 
   # ── 4. Diff against production ────────────────────────────────────────────
   # kit diff exits non-zero when layers diverge unexpectedly — the flow stops
@@ -51,25 +51,23 @@ steps:
 
   - name: Diff candidate against current production
     kit.diff:
-      args:
-        - ${current_prod_ref}
-        - ${candidate_ref}
+      reference1: ${current_prod_ref}
+      reference2: ${candidate_ref}
 
   # ── 5. Promote ────────────────────────────────────────────────────────────
 
   - name: Tag for production
     kit.tag:
-      args:
-        - ${candidate_ref}
-        - ${prod_ref}
+      source: ${candidate_ref}
+      destination: ${prod_ref}
 
   - name: Push to production registry
     kit.push:
-      args: ${prod_ref}
+      source: ${prod_ref}
 
   # ── 6. Cleanup ────────────────────────────────────────────────────────────
 
   - name: Remove candidate copy
     when: ${remove_candidate}
     kit.remove:
-      args: ${candidate_ref}
+      path: ${candidate_ref}

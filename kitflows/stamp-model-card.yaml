@@ -13,11 +13,11 @@ steps:
 
   - name: Pull modelkit
     kit.pull:
-      args: ${source_ref}
+      path: ${source_ref}
 
   - name: Unpack full artifact
     kit.unpack:
-      args: ${source_ref}
+      path: ${source_ref}
       dir: ./workspace
 
   # Read the fields we need from the Kitfile so the model card stays in sync.
@@ -58,13 +58,13 @@ steps:
 
   - name: Pack with model card
     kit.pack:
-      args: ./workspace
+      directory: ./workspace
       tag: ${output_ref}
 
   - name: Inspect result
     kit.info:
-      args: ${output_ref}
+      path: ${output_ref}
 
   - name: Push updated modelkit
     kit.push:
-      args: ${output_ref}
+      source: ${output_ref}

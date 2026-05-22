@@ -34,28 +34,28 @@ steps:
 
   - name: Initialize Kitfile
     kit.init:
-      args: ${dataset_dir}
+      directory: ${dataset_dir}
       desc: ${description}
 
   # ── 3. Pack the dataset ───────────────────────────────────────────────────
 
   - name: Pack dataset
     kit.pack:
-      args: ${dataset_dir}
+      directory: ${dataset_dir}
       tag: ${ref}
 
   # ── 4. Inspect ────────────────────────────────────────────────────────────
 
   - name: Show dataset metadata
     kit.info:
-      args: ${ref}
+      path: ${ref}
 
   - name: List layers
     kit.inspect:
-      args: ${ref}
+      path: ${ref}
 
   # ── 5. Push to registry ───────────────────────────────────────────────────
 
   - name: Push dataset
     kit.push:
-      args: ${ref}
+      source: ${ref}
