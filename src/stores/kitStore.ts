@@ -24,6 +24,12 @@ const BUILTIN_REGISTRIES: StoredRegistry[] = [
   { name: 'Jozu Hub', url: 'jozu.ml', authenticated: false, isCustom: false },
 ]
 
+interface UpdateInfo {
+  current: string
+  latest: string
+  url: string
+}
+
 export const useKitStore = defineStore('kit', () => {
   const logStore = useLogStore()
 
@@ -42,7 +48,10 @@ export const useKitStore = defineStore('kit', () => {
   const pushing = ref<string | null>(null) // reference of ModelKit being pushed
   const storedRegistries = useLocalStorage<StoredRegistry[]>('kitops-registries', [])
   const registries = ref<StoredRegistry[]>([])
-  const updateAvailable = ref<{ current: string; latest: string; url: string } | null>(null)
+  // Persisted so the "update available" flag survives the kit CLI's own 24h throttle
+  // on re-printing the notice - only cleared via dismissUpdate() or clearUpdateAvailable()
+  const updateAvailable = useLocalStorage<UpdateInfo | null>('kitops-update-available', null)
+  const dismissedUpdateVersion = useLocalStorage<string | null>('kitops-dismissed-update-version', null)
 
   // Getters
   const sortedModelKits = computed(() =>
@@ -60,10 +69,27 @@ export const useKitStore = defineStore('kit', () => {
   async function checkForUpdate() {
     try {
       const update = await window.kitops.kit.checkUpdate()
-      updateAvailable.value = update ?? null
+      // The kit CLI only re-prints the update notice once every 24h, so a `null`
+      // result here doesn't mean the update went away - only ignore it if it's
+      // for a version the user already dismissed.
+      if (update && update.latest !== dismissedUpdateVersion.value) {
+        updateAvailable.value = update
+      }
     } catch (error) {
       logStore.logError('Failed to check for updates', error)
     }
+  }
+
+  // Dismiss the current "update available" notice without installing it
+  function dismissUpdate() {
+    dismissedUpdateVersion.value = updateAvailable.value?.latest ?? dismissedUpdateVersion.value
+    updateAvailable.value = null
+  }
+
+  // Clear the notice once the CLI has actually been updated
+  function clearUpdateAvailable() {
+    updateAvailable.value = null
+    dismissedUpdateVersion.value = null
   }
 
   async function getKitVersion() {
@@ -392,6 +418,8 @@ export const useKitStore = defineStore('kit', () => {
     diffModelKits,
     checkForUpdate,
     updateAvailable,
+    dismissUpdate,
+    clearUpdateAvailable,
     clearUnpackedData,
   }
 })

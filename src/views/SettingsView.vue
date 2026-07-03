@@ -107,7 +107,7 @@ async function updateKit() {
       return
     }
     await kitStore.getKitVersion()
-    await kitStore.checkForUpdate()
+    kitStore.clearUpdateAvailable()
     kitCliPath.value = result.kitPath || kitCliPath.value
     notification.success('Kit CLI updated successfully')
   } catch (error) {
@@ -312,11 +312,11 @@ function resetTempDir() {
           <div class="flex flex-col gap-3 mb-6">
             <div class="flex justify-between pb-3 border-b border-gray-03">
               <span class="text-gray-01 font-semibold">Version</span>
-              <span class="text-off-white">{{ version }}</span>
+              <span class="text-off-white text-sm">{{ version }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-01 font-semibold">License</span>
-              <span class="text-off-white">MIT</span>
+              <span class="text-off-white text-sm">MIT</span>
             </div>
           </div>
         </div>
@@ -340,24 +340,29 @@ function resetTempDir() {
               <a :href="kitStore.updateAvailable.url" target="_blank" class="text-sm text-gray-02 no-underline hover:text-gold transition-colors">
                 Changelog
               </a>
+              <button
+                class="button-action text-sm py-1 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="kitStore.dismissUpdate">
+                Skip this version
+              </button>
             </div>
           </div>
           <div class="flex flex-col gap-3 mb-6">
             <div class="flex justify-between pb-3 border-b border-gray-03">
               <span class="text-gray-01 font-semibold">Version</span>
-              <span class="text-off-white font-mono">{{ kitStore.kitVersion?.Version || '<unknown>' }}</span>
+              <span class="text-off-white font-mono text-sm">{{ kitStore.kitVersion?.Version || '<unknown>' }}</span>
             </div>
             <div class="flex justify-between pb-3 border-b border-gray-03">
               <span class="text-gray-01 font-semibold">Commit</span>
-              <span class="text-off-white font-mono">{{ kitStore.kitVersion?.Commit || '<unknown>' }}</span>
+              <span class="text-off-white font-mono text-sm">{{ kitStore.kitVersion?.Commit || '<unknown>' }}</span>
             </div>
             <div class="flex justify-between pb-3 border-b border-gray-03">
               <span class="text-gray-01 font-semibold">Built</span>
-              <span class="text-off-white font-mono">{{ kitStore.kitVersion?.Built || '<unknown>' }}</span>
+              <span class="text-off-white font-mono text-sm">{{ kitStore.kitVersion?.Built || '<unknown>' }}</span>
             </div>
             <div class="flex justify-between pb-3 border-b border-gray-03">
               <span class="text-gray-01 font-semibold">Go Version</span>
-              <span class="text-off-white font-mono">{{ kitStore.kitVersion?.GoVersion || '<unknown>' }}</span>
+              <span class="text-off-white font-mono text-sm">{{ kitStore.kitVersion?.GoVersion || '<unknown>' }}</span>
             </div>
             <div class="flex justify-between pb-3 border-b border-gray-03">
               <span class="text-gray-01 font-semibold">Install Path</span>

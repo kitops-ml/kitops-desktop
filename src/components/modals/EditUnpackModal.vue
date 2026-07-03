@@ -50,15 +50,19 @@ async function startUnpack() {
     logStore.logInfo(`Unpack complete for ${path.value}`, { dir })
     emit('complete', dir)
   } catch (e) {
+    unpacking.value = false
+    if (e instanceof Error && e.name === 'AbortError') {
+      return
+    }
     const message = e instanceof Error ? e.message : String(e)
     error.value = cleanIpcError(message)
-    unpacking.value = false
   }
 }
 
 function handleClose() {
   if (unpacking.value) {
-    return
+    window.kitops.kit.cancelOperation()
+    unpacking.value = false
   }
   error.value = null
   emit('close')
@@ -79,9 +83,12 @@ function handleClose() {
     <!-- Unpacking progress -->
     <template v-if="unpacking">
       <p class="text-gray-01 text-sm mb-6">Unpacking to a temporary directory...</p>
-      <div class="flex items-center gap-3 py-2 text-gray-01">
+      <div class="flex items-center gap-3 py-2 mb-6 text-gray-01">
         <IconSpinner class="w-5 h-5 animate-spin shrink-0" />
         <span class="font-mono text-sm text-off-white">{{ path }}</span>
+      </div>
+      <div class="flex gap-3">
+        <button class="flex-1 button-secondary" @click="handleClose">Cancel</button>
       </div>
     </template>
 

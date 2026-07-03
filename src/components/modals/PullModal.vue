@@ -52,7 +52,6 @@ watch(
         <button
           type="button"
           class="flex-1 button-secondary"
-          :disabled="loading"
           @click="$emit('close')">
           Cancel
         </button>
